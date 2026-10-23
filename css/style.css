@@ -123,8 +123,9 @@ body.idle .pane:not(.editing):not([data-level="wait"]):not([data-level="bad"]) .
 /* With no stream yet, the form's own heading names the camera. */
 .pane.editing[data-level=""] .pane-bar { display: none; }
 .setup h2 { margin: 0; font-size: 18px; }
-.setup label { display: grid; gap: 4px; color: var(--muted); font-size: 13px; }
-.setup input {
+.setup label, .field { display: grid; gap: 4px; color: var(--muted); font-size: 13px; margin: 0 0 12px; }
+.setup label { margin: 0; }
+.setup input, .field input {
   width: 100%;
   background: var(--bg);
   border: 1px solid var(--line);
@@ -132,7 +133,7 @@ body.idle .pane:not(.editing):not([data-level="wait"]):not([data-level="bad"]) .
   padding: 10px 12px;
   font-size: 16px; /* 16px stops iPhone zooming in on focus */
 }
-.setup input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+.setup input:focus, .field input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
 .setup .muted { margin: 0; font-size: 13px; }
 .setup-error { margin: 0; color: var(--bad); font-size: 14px; }
 
@@ -153,6 +154,13 @@ dialog h3 { margin: 18px 0 6px; font-size: 15px; }
 dialog p, dialog ol, dialog ul { margin: 0 0 8px; }
 dialog li { margin-bottom: 6px; }
 .help-close { float: right; margin: 0 0 8px 12px; }
+#shareDlg .muted { margin: 0 0 14px; }
+#shareUrl { font-size: 14px; color: var(--muted); }
+#shareWarn { margin: 0 0 12px; }
+.btn.disabled { opacity: .4; pointer-events: none; }
+
+/* Watch link: just the cameras. */
+body.viewing #shareBtn, body.viewing #helpBtn, body.viewing .pane-change { display: none; }
 
 .toast {
   position: fixed;
@@ -173,4 +181,8 @@ dialog li { margin-bottom: 6px; }
   .tools { margin-left: 0; flex: 1; justify-content: space-between; }
   .tools .btn { padding: 6px 10px; font-size: 14px; }
   .tools .long { display: none; }
+  /* A watch link has fewer buttons, so there's room for its title. */
+  body.viewing .brand { display: flex; min-width: 0; }
+  body.viewing .brand span { overflow: hidden; text-overflow: ellipsis; }
+  body.viewing .tools { flex: none; margin-left: auto; }
 }

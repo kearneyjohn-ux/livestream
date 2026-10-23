@@ -10,7 +10,9 @@ Watch two GoPro live feeds side by side, e.g. two cameras on a race truck stream
    - **HLS** links ending in `.m3u8`
    - **WebRTC (WHEP)** links from your own stream server, e.g. MediaMTX `https://server:8889/truck1` or Cloudflare Stream `…/webRTC/play`
 2. Name each camera (e.g. "Bonnet cam") if you like.
-3. **Share link** copies a link that opens the same screen with both cameras set up, for the crew.
+3. Tap **Share**, give the broadcast a title (e.g. "KDR 2026 · Truck 12") and tap **Copy link** (or **Send…** on a phone) to text or email it.
+
+Whoever opens the watch link goes straight to both cameras, with the title at the top. They can't see setup forms or change your cameras, and nothing they do changes your own setup. YouTube links are shortened to their video ID, so the link stays short enough to text. Your own screen remembers your setup, and its address works as an edit link for you.
 
 Other controls:
 - **Layout**: *Auto* puts the cameras side by side in landscape and one above the other in portrait. You can also fix it to *Side by side* or *Stacked*.
@@ -48,10 +50,10 @@ To run it on your own computer: `npm start`, then open `http://localhost:8080`.
 ## Development
 
 ```
-npm test    # unit tests for link parsing and share links (Node 20+)
+npm test    # unit tests for link parsing and watch links (Node 20+)
 ```
 
-- `js/sources.js`: works out what a pasted link is and how to play it (no DOM, runs in Node)
+- `js/sources.js`: works out what a pasted link is and how to play it, and builds watch links (no DOM, runs in Node)
 - `js/players.js`: YouTube/Twitch embeds, HLS and WebRTC (WHEP) players with automatic reconnect
 - `js/app.js`: the split screen, setup forms, layout, sound and share link
 - `vendor/hls.light.min.js`: [hls.js](https://github.com/video-dev/hls.js) 1.7.3 (Apache 2.0, see `vendor/hls.js-LICENSE`) for HLS in browsers other than Safari

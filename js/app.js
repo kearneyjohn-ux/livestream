@@ -1,4 +1,4 @@
-import { parseSource, isBlockedHttp, encodeState, decodeState, LAYOUTS, KIND_NAMES } from './sources.js';
+import { parseSource, isBlockedHttp, encodeState, decodeState, watchLink, LAYOUTS, KIND_NAMES } from './sources.js';
 import { createPlayer } from './players.js';
 
 const $ = (id) => document.getElementById(id);
@@ -15,17 +15,28 @@ function loadState() {
   if (fromHash) return fromHash;
   try {
     const saved = JSON.parse(localStorage.getItem(STORE_KEY));
-    if (saved?.panes?.length === 2) return { layout: LAYOUTS.includes(saved.layout) ? saved.layout : 'auto', panes: saved.panes };
+    if (saved?.panes?.length === 2) {
+      return { title: saved.title || '', layout: LAYOUTS.includes(saved.layout) ? saved.layout : 'auto', view: false, panes: saved.panes };
+    }
   } catch {}
-  return { layout: 'auto', panes: [{ input: '', label: '' }, { input: '', label: '' }] };
+  return { title: '', layout: 'auto', view: false, panes: [{ input: '', label: '' }, { input: '', label: '' }] };
 }
 
 function saveState() {
   const hash = encodeState(state);
   history.replaceState(null, '', hash ? `#${hash}` : location.pathname + location.search);
+  // Someone watching a link shouldn't lose their own camera setup to it.
+  if (state.view) return;
   try {
     localStorage.setItem(STORE_KEY, JSON.stringify(state));
   } catch {}
+}
+
+// A watch link (view=1) shows just the cameras and the title.
+function applyMode() {
+  document.body.classList.toggle('viewing', state.view);
+  $('brandName').textContent = state.title || 'GoPro Split Screen';
+  document.title = state.title || 'GoPro Split Screen';
 }
 
 // ---------- Panes ----------
@@ -72,6 +83,11 @@ function render(pane) {
     source = parseSource(input);
   } catch (err) {
     problem = err.message;
+  }
+  if (!source && state.view) {
+    hideSetup(pane);
+    setStatus(pane, 'No camera on this side', '');
+    return;
   }
   if (!source) {
     showSetup(pane);
@@ -193,20 +209,57 @@ $('swapBtn').addEventListener('click', () => {
   saveState();
 });
 
-$('shareBtn').addEventListener('click', async () => {
+// ---------- Sending a watch link ----------
+
+function updateShare() {
+  const ready = state.panes.some((p) => p.input);
+  const url = ready ? watchLink(state, location.href) : '';
+  $('shareUrl').value = url;
+  $('shareOpen').href = url || '#';
+  $('shareWarn').hidden = ready;
+  for (const id of ['shareCopy', 'shareSend', 'shareOpen']) $(id).classList.toggle('disabled', !ready);
+  return url;
+}
+
+$('shareBtn').addEventListener('click', () => {
+  $('shareTitle').value = state.title;
+  $('shareSend').hidden = !navigator.share;
+  updateShare();
+  $('shareDlg').showModal();
+});
+
+$('shareTitle').addEventListener('input', () => {
+  state.title = $('shareTitle').value.trim();
+  applyMode();
   saveState();
-  const url = location.href;
+  updateShare();
+});
+
+$('shareCopy').addEventListener('click', async () => {
+  const url = updateShare();
+  if (!url) return;
   try {
-    if (navigator.share && matchMedia('(pointer: coarse)').matches) {
-      await navigator.share({ title: 'GoPro Split Screen', url });
-      return;
-    }
     await navigator.clipboard.writeText(url);
-    toast('Link copied. Anyone with it sees both cameras.');
-  } catch (err) {
-    if (err?.name !== 'AbortError') prompt('Copy this link:', url);
+    toast('Watch link copied. Paste it into a text or email.');
+  } catch {
+    $('shareUrl').select();
+    toast('Select the link above and copy it.');
   }
 });
+
+$('shareSend').addEventListener('click', async () => {
+  const url = updateShare();
+  if (!url) return;
+  try {
+    await navigator.share({ title: state.title || 'Live cameras', text: `Watch ${state.title || 'the cameras'} live:`, url });
+  } catch {}
+});
+
+$('shareOpen').addEventListener('click', (e) => {
+  if (!updateShare()) e.preventDefault();
+});
+
+$('shareUrl').addEventListener('focus', () => $('shareUrl').select());
 
 const root = document.documentElement;
 const canFullscreen = root.requestFullscreen || root.webkitRequestFullscreen;
@@ -220,15 +273,17 @@ $('fullBtn').addEventListener('click', () => {
 });
 
 $('helpBtn').addEventListener('click', () => $('help').showModal());
-$('help').addEventListener('click', (e) => {
-  if (e.target === $('help')) $('help').close();
-});
+// Tapping outside a dialog closes it.
+for (const dlg of document.querySelectorAll('dialog')) {
+  dlg.addEventListener('click', (e) => e.target === dlg && dlg.close());
+}
 
 // Someone pasted a different shared link into the address bar.
 addEventListener('hashchange', () => {
   const next = decodeState(location.hash);
   if (!next || encodeState(next) === encodeState(state)) return;
   Object.assign(state, next);
+  applyMode();
   applyLayout();
   panes.forEach(render);
 });
@@ -269,6 +324,7 @@ function toast(msg, ms = 3000) {
 // ---------- Start ----------
 
 panes.push(buildPane(0), buildPane(1));
+applyMode();
 applyLayout();
 panes.forEach(render);
 saveState();

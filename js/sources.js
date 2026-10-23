@@ -96,18 +96,34 @@ export function isBlockedHttp(source, pageProtocol) {
   return url.protocol === 'http:' && !['localhost', '127.0.0.1', '[::1]'].includes(url.hostname);
 }
 
+// The shortest link that plays the same stream, to keep watch links short enough to text.
+export function shortInput(input) {
+  let source;
+  try {
+    source = parseSource(input);
+  } catch {
+    return input;
+  }
+  if (source?.videoId) return source.videoId;
+  if (source?.kind === 'twitch') return `twitch.tv/${source.channel}`;
+  return input;
+}
+
 // Screen setup <-> URL hash, so a link can be bookmarked or sent to the crew.
-// #a=<link>&an=<name>&b=<link>&bn=<name>&layout=row
+// #a=<link>&an=<name>&b=<link>&bn=<name>&t=<title>&layout=row&view=1
+// `view=1` is a watch link: it only shows the cameras, with nothing to set up or change.
 const KEYS = ['a', 'b'];
 export const LAYOUTS = ['auto', 'row', 'col'];
 
 export function encodeState(state) {
   const q = new URLSearchParams();
   state.panes.forEach((p, i) => {
-    if (p.input) q.set(KEYS[i], p.input);
+    if (p.input) q.set(KEYS[i], state.view ? shortInput(p.input) : p.input);
     if (p.label) q.set(`${KEYS[i]}n`, p.label);
   });
+  if (state.title) q.set('t', state.title);
   if (state.layout && state.layout !== 'auto') q.set('layout', state.layout);
+  if (state.view) q.set('view', '1');
   return q.toString();
 }
 
@@ -116,7 +132,16 @@ export function decodeState(hash) {
   if (!KEYS.some((k) => q.has(k) || q.has(`${k}n`))) return null;
   const layout = q.get('layout');
   return {
+    title: q.get('t') || '',
     layout: LAYOUTS.includes(layout) ? layout : 'auto',
+    view: q.get('view') === '1',
     panes: KEYS.map((k) => ({ input: q.get(k) || '', label: q.get(`${k}n`) || '' })),
   };
+}
+
+// A link that opens just the cameras, for people who only watch.
+export function watchLink(state, pageUrl) {
+  const url = new URL(pageUrl);
+  url.hash = encodeState({ ...state, view: true });
+  return url.href;
 }

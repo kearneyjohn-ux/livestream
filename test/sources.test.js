@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseSource, embedUrl, isBlockedHttp, encodeState, decodeState } from '../js/sources.js';
+import { parseSource, embedUrl, isBlockedHttp, encodeState, decodeState, shortInput, watchLink } from '../js/sources.js';
 
 test('YouTube links in every common shape', () => {
   const id = 'dQw4w9WgXcQ';
@@ -76,7 +76,9 @@ test('http streams are blocked on an https page, except from this computer', () 
 
 test('Screen setup round-trips through the share link', () => {
   const state = {
+    title: 'KDR 2026 · Truck 12',
     layout: 'col',
+    view: false,
     panes: [
       { input: 'https://youtube.com/watch?v=dQw4w9WgXcQ&t=1', label: 'Bonnet & roof' },
       { input: 'https://cam.example.com:8889/truck2', label: '' },
@@ -88,4 +90,26 @@ test('Screen setup round-trips through the share link', () => {
   assert.equal(decodeState(''), null);
   assert.equal(decodeState('#layout=row'), null);
   assert.equal(decodeState('#a=x&layout=bogus').layout, 'auto');
+});
+
+test('Watch links are short, titled and open in watch-only mode', () => {
+  const state = {
+    title: 'KDR 2026',
+    layout: 'auto',
+    view: false,
+    panes: [
+      { input: 'https://www.youtube.com/live/dQw4w9WgXcQ?si=Xy12abcdEFGH', label: 'Bonnet' },
+      { input: 'https://www.twitch.tv/TruckCam', label: 'Roof' },
+    ],
+  };
+  const link = watchLink(state, 'https://me.github.io/livestream/#a=old');
+  assert.equal(link, 'https://me.github.io/livestream/#a=dQw4w9WgXcQ&an=Bonnet&b=twitch.tv%2Ftruckcam&bn=Roof&t=KDR+2026&view=1');
+  const opened = decodeState(new URL(link).hash);
+  assert.equal(opened.view, true);
+  assert.equal(opened.title, 'KDR 2026');
+  assert.deepEqual(parseSource(opened.panes[0].input), parseSource(state.panes[0].input));
+  assert.deepEqual(parseSource(opened.panes[1].input), parseSource(state.panes[1].input));
+  // Links the app can't shorten go through unchanged.
+  assert.equal(shortInput('https://cam.example.com:8889/truck1'), 'https://cam.example.com:8889/truck1');
+  assert.equal(shortInput('not a link at all'), 'not a link at all');
 });

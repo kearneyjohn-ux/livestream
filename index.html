@@ -14,11 +14,11 @@
 </head>
 <body>
   <header class="topbar">
-    <div class="brand"><img src="icon.svg" alt="" width="22" height="22"><span>GoPro Split Screen</span></div>
+    <div class="brand"><img src="icon.svg" alt="" width="22" height="22"><span id="brandName">GoPro Split Screen</span></div>
     <div class="tools">
       <button class="btn" id="layoutBtn" title="Side by side or one above the other">Layout: Auto</button>
       <button class="btn" id="swapBtn" title="Swap the two cameras">Swap</button>
-      <button class="btn" id="shareBtn" title="Copy a link that opens this screen with both cameras">Share<span class="long">&nbsp;link</span></button>
+      <button class="btn" id="shareBtn" title="Send someone a link to watch both cameras">Share<span class="long">&nbsp;link</span></button>
       <button class="btn" id="fullBtn" hidden>Full<span class="long">&nbsp;screen</span></button>
       <button class="btn" id="helpBtn">Help</button>
     </div>
@@ -58,6 +58,24 @@
     </section>
   </template>
 
+  <dialog id="shareDlg">
+    <form method="dialog" class="help-close"><button class="btn">Close</button></form>
+    <h2>Send a watch link</h2>
+    <p class="muted">Whoever opens it sees both cameras live, with nothing to set up. They can't change your cameras.</p>
+    <label class="field">Title
+      <input id="shareTitle" type="text" maxlength="60" placeholder="e.g. KDR 2026 · Truck 12">
+    </label>
+    <label class="field">Watch link
+      <input id="shareUrl" type="text" readonly>
+    </label>
+    <p class="setup-error" id="shareWarn" hidden>Add at least one camera first.</p>
+    <div class="btn-row">
+      <button class="btn btn-go" id="shareCopy" type="button">Copy link</button>
+      <button class="btn" id="shareSend" type="button" hidden>Send…</button>
+      <a class="btn btn-ghost" id="shareOpen" href="#" target="_blank" rel="noopener">Try it</a>
+    </div>
+  </dialog>
+
   <dialog id="help">
     <form method="dialog" class="help-close"><button class="btn">Close</button></form>
     <h2>Getting the GoPros on screen</h2>
@@ -77,7 +95,7 @@
     <ul>
       <li>Two streams share the Starlink upload. Use <b>720p</b> on the cameras if either one keeps buffering.</li>
       <li>A camera that drops out is reconnected automatically. The coloured dot shows each feed: green live, amber waiting, red problem.</li>
-      <li><b>Share link</b> copies a link that opens this screen with both cameras already set up, for the crew.</li>
+      <li><b>Share</b> makes a watch link to text or email. It opens straight to both cameras, with nothing to set up.</li>
       <li>Sound starts off. Tap <b>Sound on</b> on one camera; YouTube and Twitch have their own speaker button.</li>
     </ul>
   </dialog>
