@@ -153,6 +153,11 @@ export function encodeState(state) {
 
 export function decodeState(hash) {
   const q = new URLSearchParams(String(hash || '').replace(/^#/, ''));
+  if (q.has('w')) {
+    // A watch link: always watch-only, whatever is inside.
+    const inner = decodeState(fromBase64Url(q.get('w')));
+    return inner && { ...inner, view: true };
+  }
   if (!KEYS.some((k) => q.has(k) || q.has(`${k}n`))) return null;
   const layout = q.get('layout');
   const corner = q.get('corner');
@@ -169,9 +174,29 @@ export function decodeState(hash) {
   };
 }
 
-// A link that opens just the cameras, for people who only watch.
+// A watch link opens just the cameras, exactly as set up, for people who only watch. Its
+// settings are packed into one opaque value (#w=…) so they aren't readable or easy to edit
+// in the address bar. That's not security: nothing a viewer does to their link can change
+// anyone else's screen anyway, since every screen's settings live in its own link.
+export function watchHash(state) {
+  return `w=${toBase64Url(encodeState({ ...state, view: false }))}`;
+}
+
 export function watchLink(state, pageUrl) {
   const url = new URL(pageUrl);
-  url.hash = encodeState({ ...state, view: true });
+  url.hash = watchHash(state);
   return url.href;
+}
+
+// encodeState's output is plain ASCII (URLSearchParams percent-encodes the rest).
+function toBase64Url(text) {
+  return btoa(text).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function fromBase64Url(text) {
+  try {
+    return atob(String(text).replace(/-/g, '+').replace(/_/g, '/'));
+  } catch {
+    return '';
+  }
 }

@@ -109,7 +109,8 @@ test('Watch links are short, titled and open in watch-only mode', () => {
     ],
   };
   const link = watchLink(state, 'https://me.github.io/livestream/#a=old');
-  assert.equal(link, 'https://me.github.io/livestream/#a=dQw4w9WgXcQ&an=Bonnet&b=twitch.tv%2Ftruckcam&bn=Roof&t=KDR+2026&view=1');
+  assert.match(link, /^https:\/\/me\.github\.io\/livestream\/#w=[A-Za-z0-9_-]+$/);
+  assert.doesNotMatch(link, /youtube|twitch|Bonnet|KDR/, 'nothing readable to edit');
   const opened = decodeState(new URL(link).hash);
   assert.equal(opened.view, true);
   assert.equal(opened.title, 'KDR 2026');
@@ -126,4 +127,23 @@ test('Saved cameras from older versions get the new fields filled in', () => {
   assert.deepEqual(normalizePane(null).rotate, 0);
   assert.equal(normalizePane({ rotate: '90' }).rotate, 90);
   assert.equal(normalizePane({ car: 12 }).car, '');
+});
+
+test('Watch links are always watch-only and survive accented names', () => {
+  const state = {
+    title: 'Ré Rally',
+    layout: 'pip',
+    corner: 'tl',
+    view: false,
+    panes: [
+      normalizePane({ input: 'https://cam.example.com:8889/truck1', driver: 'Seán Ó Briain', car: '646', rotate: 180 }),
+      normalizePane({ input: 'https://cam.example.com:8889/truck2', off: true }),
+    ],
+  };
+  const opened = decodeState(new URL(watchLink(state, 'https://x.example/')).hash);
+  assert.deepEqual(opened, { ...state, view: true });
+  assert.equal(decodeState('#w=not*base64'), null);
+  assert.equal(decodeState('#w='), null);
+  // Older readable watch links still open, still watch-only.
+  assert.equal(decodeState('#a=dQw4w9WgXcQ&view=1').view, true);
 });

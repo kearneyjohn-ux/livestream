@@ -17,12 +17,12 @@ Watch two GoPro live feeds side by side, e.g. two cameras on a race truck stream
 3. If a camera is mounted upside down or sideways, set **Picture** to *Upside down* (or a quarter turn), or tap the **rotate** button on the feed. Each tap turns it 90° clockwise.
 4. Tap **Share**, give the broadcast a title (e.g. "KDR 2026 · Truck 12") and tap **Copy link** (or **Send…** on a phone) to text or email it.
 
-Whoever opens the watch link goes straight to both cameras, with the title at the top, and each feed keeps its car number, crew names and rotation. They can't see setup forms or change your cameras, and nothing they do changes your own setup. YouTube links are shortened to their video ID, so the link stays short enough to text. Your own screen remembers your setup, and its address works as an edit link for you.
+Whoever opens the watch link goes straight to the cameras, locked exactly as you set them up: the same layout, cars, rotation and cameras on or off. They can only go full screen and turn sound on or off on their own device. The settings are packed into the link (`#w=…`) so they aren't readable or easy to edit in the address bar. Nothing a viewer does can change your screen or anyone else's, because each screen's settings live in its own link. To change what viewers see, change your setup and send a new link. YouTube links are shortened to their video ID, so the link stays as short as possible.
 
 Other controls:
 - **Layout**: *Auto* puts the cameras side by side in landscape and one above the other in portrait. You can also fix it to *Side by side*, *Stacked* or *Picture in picture* (one camera full screen, the other in a small window; the corner button on the small window moves it round the corners).
 - **Swap**: switches the two cameras round without dropping either feed. In picture in picture it swaps which one is full screen.
-- **Turn a camera off** (the power button on it) when its feed drops: the other camera fills the screen, and the dropped one stops using data. **Turn on …** in the bottom corner brings it back. People watching a link can do this for themselves too.
+- **Turn a camera off** (the power button on it) when its feed drops: the other camera fills the screen, and the dropped one stops using data. **Turn on …** in the bottom corner brings it back. 
 - **Full screen** (where the browser supports it).
 - Sound starts muted. **Sound on** plays one camera at a time. YouTube and Twitch use their own speaker button.
 

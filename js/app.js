@@ -1,4 +1,4 @@
-import { parseSource, isBlockedHttp, encodeState, decodeState, watchLink, emptyPane, normalizePane, LAYOUTS, CORNERS, ROTATIONS, KIND_NAMES } from './sources.js';
+import { parseSource, isBlockedHttp, encodeState, decodeState, watchLink, watchHash, emptyPane, normalizePane, LAYOUTS, CORNERS, ROTATIONS, KIND_NAMES } from './sources.js';
 import { createPlayer } from './players.js';
 import { loadCars, saveCars, findCar, upsertCar, removeCar, carLabel, crewText } from './roster.js';
 
@@ -36,7 +36,7 @@ function loadState() {
 }
 
 function saveState() {
-  const hash = encodeState(state);
+  const hash = state.view ? watchHash(state) : encodeState(state);
   history.replaceState(null, '', hash ? `#${hash}` : location.pathname + location.search);
   // Someone watching a link shouldn't lose their own camera setup to it.
   if (state.view) return;
@@ -45,7 +45,7 @@ function saveState() {
   } catch {}
 }
 
-// A watch link (view=1) shows just the cameras and the title.
+// A watch link shows just the cameras and the title, locked as they were set up.
 function applyMode() {
   document.body.classList.toggle('viewing', state.view);
   $('brandName').textContent = state.title || 'GoPro Split Screen';

@@ -284,7 +284,11 @@ dialog li { margin-bottom: 6px; }
 .btn.disabled { opacity: .4; pointer-events: none; }
 
 /* Watch link: just the cameras. */
-body.viewing #shareBtn, body.viewing #helpBtn, body.viewing .pane-change, body.viewing .pane-rotate { display: none; }
+/* Watch link: just the cameras, locked as they were set up. Viewers keep full screen and
+   their own sound, which don't change anything for anyone else. */
+body.viewing #layoutBtn, body.viewing #swapBtn, body.viewing #shareBtn, body.viewing #helpBtn,
+body.viewing .pane-change, body.viewing .pane-rotate, body.viewing .pane-off, body.viewing .pane-corner,
+body.viewing #restore { display: none !important; }
 
 .toast {
   position: fixed;
