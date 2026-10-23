@@ -1,0 +1,12 @@
+{
+  "name": "livestream",
+  "version": "1.0.0",
+  "description": "Watch two GoPro live feeds (e.g. over Starlink) side by side in the browser.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "start": "npx --yes http-server -c-1 -p 8080 ."
+  },
+  "license": "MIT"
+}

@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b0d10">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>GoPro Split Screen</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><img src="icon.svg" alt="" width="22" height="22"><span>GoPro Split Screen</span></div>
+    <div class="tools">
+      <button class="btn" id="layoutBtn" title="Side by side or one above the other">Layout: Auto</button>
+      <button class="btn" id="swapBtn" title="Swap the two cameras">Swap</button>
+      <button class="btn" id="shareBtn" title="Copy a link that opens this screen with both cameras">Share<span class="long">&nbsp;link</span></button>
+      <button class="btn" id="fullBtn" hidden>Full<span class="long">&nbsp;screen</span></button>
+      <button class="btn" id="helpBtn">Help</button>
+    </div>
+  </header>
+
+  <main class="split" id="split" data-layout="auto">
+    <!-- Filled from the template below, one per camera -->
+  </main>
+
+  <template id="paneTpl">
+    <section class="pane">
+      <div class="stage"></div>
+      <div class="pane-bar">
+        <span class="dot" aria-hidden="true"></span>
+        <b class="pane-name"></b>
+        <span class="pane-status" role="status"></span>
+        <span class="spacer"></span>
+        <button class="btn btn-sm pane-mute" hidden>Sound off</button>
+        <button class="btn btn-sm pane-change">Change</button>
+      </div>
+      <form class="setup" hidden>
+        <h2 class="setup-title"></h2>
+        <label>Stream link
+          <input name="input" type="text" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false"
+                 placeholder="https://youtube.com/live/… or https://server/truck1/index.m3u8">
+        </label>
+        <label>Name
+          <input name="label" type="text" maxlength="40" placeholder="e.g. Bonnet cam">
+        </label>
+        <p class="setup-error" role="alert" hidden></p>
+        <div class="btn-row">
+          <button class="btn btn-go" type="submit">Watch</button>
+          <button class="btn btn-ghost setup-cancel" type="button" hidden>Cancel</button>
+        </div>
+        <p class="muted">Works with YouTube Live, Twitch, HLS (.m3u8) and WebRTC (WHEP) links. <a href="#" class="help-link">How to set up the cameras</a></p>
+      </form>
+    </section>
+  </template>
+
+  <dialog id="help">
+    <form method="dialog" class="help-close"><button class="btn">Close</button></form>
+    <h2>Getting the GoPros on screen</h2>
+    <p>Each GoPro joins the Starlink Wi-Fi and sends a live stream to the internet. Paste each camera's watch link into one half of this screen. Watch it on any phone, tablet or laptop, anywhere.</p>
+
+    <h3>Easiest: YouTube Live (free, about 5–10 s behind)</h3>
+    <ol>
+      <li>In <b>YouTube Studio → Create → Go live → Stream</b>, set up two streams (one per camera), each with its <b>own stream key</b>. Set them to <b>Unlisted</b> and <b>Ultra-low latency</b>, and turn <b>Auto-stop off</b> so a Starlink dropout doesn't end the broadcast and change its link.</li>
+      <li>In the <b>GoPro Quik</b> app, connect to the first camera, choose <b>Live → RTMP</b>, pick the Starlink Wi-Fi, and enter <code>rtmp://a.rtmp.youtube.com/live2/</code> followed by that camera's stream key. Go live, then do the same for the second camera with the other key.</li>
+      <li>Copy each stream's link (<b>Share → Copy link</b>) and paste one into each half here.</li>
+    </ol>
+
+    <h3>Least delay: your own stream server (about 1 s behind)</h3>
+    <p>Run <a href="https://github.com/bluenviron/mediamtx" target="_blank" rel="noopener">MediaMTX</a> on a small cloud server with an https address. Point the cameras at <code>rtmp://your-server/truck1</code> and <code>rtmp://your-server/truck2</code>, then paste <code>https://your-server:8889/truck1</code> and <code>…/truck2</code> here (WebRTC). An <code>…/index.m3u8</code> link from its HLS port works too, with a few seconds more delay.</p>
+
+    <h3>Tips</h3>
+    <ul>
+      <li>Two streams share the Starlink upload. Use <b>720p</b> on the cameras if either one keeps buffering.</li>
+      <li>A camera that drops out is reconnected automatically. The coloured dot shows each feed: green live, amber waiting, red problem.</li>
+      <li><b>Share link</b> copies a link that opens this screen with both cameras already set up, for the crew.</li>
+      <li>Sound starts off. Tap <b>Sound on</b> on one camera; YouTube and Twitch have their own speaker button.</li>
+    </ul>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" hidden></div>
+
+  <script src="vendor/hls.light.min.js"></script>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,176 @@
+:root {
+  --bg: #0b0d10;
+  --panel: #161a1f;
+  --card: #1f252b;
+  --line: #333b43;
+  --text: #eef1f4;
+  --muted: #9aa5b0;
+  --accent: #3fa7ff;
+  --go: #1a9850;
+  --ok: #3ccf6e;
+  --wait: #f5b942;
+  --bad: #ff5a4f;
+  --topbar: 52px;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  overflow: hidden;
+}
+button, input { font: inherit; color: inherit; }
+a { color: var(--accent); }
+code { background: var(--card); padding: 1px 5px; border-radius: 4px; font-size: 13px; overflow-wrap: anywhere; }
+.muted { color: var(--muted); }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 6px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: #2a3239;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn:hover { filter: brightness(1.15); }
+.btn-ghost { background: transparent; }
+.btn-go { background: var(--go); border-color: var(--go); font-weight: 600; }
+.btn-sm { min-height: 32px; padding: 4px 10px; font-size: 13px; background: rgba(20, 24, 28, .75); }
+.btn[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn-row { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* ---------- Top bar ---------- */
+
+.topbar {
+  height: calc(var(--topbar) + env(safe-area-inset-top));
+  padding: env(safe-area-inset-top) max(16px, env(safe-area-inset-right)) 0 max(16px, env(safe-area-inset-left));
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+}
+.brand { display: flex; align-items: center; gap: 8px; font-weight: 650; white-space: nowrap; }
+.tools { display: flex; gap: 6px; margin-left: auto; overflow-x: auto; scrollbar-width: none; }
+.tools::-webkit-scrollbar { display: none; }
+
+/* ---------- The split ---------- */
+
+.split {
+  height: calc(100% - var(--topbar) - env(safe-area-inset-top));
+  display: grid;
+  gap: 3px;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr;
+  background: #000;
+}
+.split[data-layout="col"] { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
+@media (orientation: portrait) {
+  .split[data-layout="auto"] { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
+}
+
+.pane { position: relative; min-width: 0; min-height: 0; overflow: hidden; background: #000; }
+.stage { position: absolute; inset: 0; }
+.stage video, .stage iframe { display: block; width: 100%; height: 100%; border: 0; object-fit: contain; background: #000; }
+
+.pane-bar {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: linear-gradient(rgba(0, 0, 0, .7), transparent);
+  transition: opacity .4s;
+  z-index: 1;
+  pointer-events: none;
+}
+.pane-bar > * { pointer-events: auto; }
+.pane-name { white-space: nowrap; text-shadow: 0 1px 3px #000; }
+.pane-status { color: #dfe5ea; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; text-shadow: 0 1px 3px #000; }
+.spacer { flex: 1; }
+.dot { width: 10px; height: 10px; border-radius: 50%; flex: none; background: var(--muted); box-shadow: 0 0 0 2px rgba(0, 0, 0, .5); }
+.pane[data-level="ok"] .dot { background: var(--ok); }
+.pane[data-level="wait"] .dot { background: var(--wait); animation: blink 1s infinite alternate; }
+.pane[data-level="bad"] .dot { background: var(--bad); }
+@keyframes blink { to { opacity: .35; } }
+
+/* Fade the bars out while nothing is touched, but keep problems showing. */
+body.idle .pane:not(.editing):not([data-level="wait"]):not([data-level="bad"]) .pane-bar { opacity: 0; }
+body.idle .pane:not(.editing):not([data-level="wait"]):not([data-level="bad"]) .pane-bar > * { pointer-events: none; }
+
+/* ---------- Choosing a stream ---------- */
+
+.setup {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  display: grid;
+  align-content: center;
+  gap: 12px;
+  padding: 56px max(16px, 8%) 16px;
+  background: var(--panel);
+}
+.pane.editing .pane-bar .pane-change { display: none; }
+/* With no stream yet, the form's own heading names the camera. */
+.pane.editing[data-level=""] .pane-bar { display: none; }
+.setup h2 { margin: 0; font-size: 18px; }
+.setup label { display: grid; gap: 4px; color: var(--muted); font-size: 13px; }
+.setup input {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 16px; /* 16px stops iPhone zooming in on focus */
+}
+.setup input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+.setup .muted { margin: 0; font-size: 13px; }
+.setup-error { margin: 0; color: var(--bad); font-size: 14px; }
+
+/* ---------- Help ---------- */
+
+dialog {
+  width: min(640px, calc(100% - 32px));
+  max-height: calc(100% - 32px);
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel);
+  color: var(--text);
+}
+dialog::backdrop { background: rgba(0, 0, 0, .6); }
+dialog h2 { margin: 0 0 8px; font-size: 18px; }
+dialog h3 { margin: 18px 0 6px; font-size: 15px; }
+dialog p, dialog ol, dialog ul { margin: 0 0 8px; }
+dialog li { margin-bottom: 6px; }
+.help-close { float: right; margin: 0 0 8px 12px; }
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: max(24px, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  max-width: calc(100% - 32px);
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: #2a3239;
+  border: 1px solid var(--line);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, .5);
+  z-index: 10;
+}
+
+@media (max-width: 640px) {
+  .brand { display: none; }
+  .tools { margin-left: 0; flex: 1; justify-content: space-between; }
+  .tools .btn { padding: 6px 10px; font-size: 14px; }
+  .tools .long { display: none; }
+}
