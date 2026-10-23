@@ -36,7 +36,7 @@
     <section class="pane">
       <div class="stage"></div>
       <div class="car-card" hidden>
-        <span class="car-num"></span>
+        <span class="car-num"><b class="num"></b><small class="car-class"></small></span>
         <span class="crew">
           <span class="crew-row" data-role="driver"><small>Driver</small><b></b></span>
           <span class="crew-row" data-role="nav"><small>Navigator</small><b></b></span>
@@ -60,19 +60,14 @@
                  placeholder="https://youtube.com/live/… or https://server/truck1/index.m3u8">
         </label>
         <div class="setup-grid">
-          <label>Car number
-            <input name="car" type="text" maxlength="6" autocomplete="off" placeholder="e.g. 12">
+          <label class="wide">Car
+            <select name="car"></select>
           </label>
+          <button type="button" class="link-btn wide cars-link">Add, edit or remove cars</button>
           <label>Camera name
             <input name="label" type="text" maxlength="40" placeholder="e.g. Bonnet cam">
           </label>
-          <label>Driver
-            <input name="driver" type="text" maxlength="40" autocomplete="off" placeholder="Driver's name">
-          </label>
-          <label>Navigator
-            <input name="nav" type="text" maxlength="40" autocomplete="off" placeholder="Navigator's name">
-          </label>
-          <label class="wide">Picture
+          <label>Picture
             <select name="rotate">
               <option value="0">The right way up</option>
               <option value="180">Upside down: flip it</option>
@@ -109,6 +104,36 @@
     </div>
   </dialog>
 
+  <dialog id="carsDlg">
+    <form method="dialog" class="help-close"><button class="btn">Close</button></form>
+    <h2>Cars</h2>
+    <p class="muted">Pick one of these for each camera under <b>Change</b>. The list is saved on this device.</p>
+    <ul class="car-list" id="carList"></ul>
+    <form class="car-form" id="carForm">
+      <h3 id="carFormTitle">Add a car</h3>
+      <div class="setup-grid">
+        <label class="field">Car number
+          <input name="car" type="text" maxlength="6" autocomplete="off" placeholder="e.g. 646">
+        </label>
+        <label class="field">Class
+          <input name="cls" type="text" maxlength="30" autocomplete="off" list="classList" placeholder="e.g. SXS Pro">
+        </label>
+        <label class="field">Driver
+          <input name="driver" type="text" maxlength="40" autocomplete="off">
+        </label>
+        <label class="field">Navigator
+          <input name="nav" type="text" maxlength="40" autocomplete="off">
+        </label>
+      </div>
+      <datalist id="classList"></datalist>
+      <p class="setup-error" id="carError" role="alert" hidden></p>
+      <div class="btn-row">
+        <button class="btn btn-go" type="submit" id="carSave">Add car</button>
+        <button class="btn btn-ghost" type="button" id="carCancel" hidden>Cancel</button>
+      </div>
+    </form>
+  </dialog>
+
   <dialog id="help">
     <form method="dialog" class="help-close"><button class="btn">Close</button></form>
     <h2>Getting the GoPros on screen</h2>
@@ -132,6 +157,7 @@
       <li>Sound starts off. Tap <b>Sound on</b> on one camera; YouTube and Twitch have their own speaker button.</li>
       <li>A feed dropped out? Tap the <b>power</b> button on it to turn that camera off: the other fills the screen and the dropped one stops using data. <b>Turn on</b> at the bottom brings it back.</li>
       <li><b>Layout → Picture in picture</b> shows one camera full screen with the other in a small window. <b>Swap</b> changes which is which; the corner button on the small window moves it.</li>
+      <li><b>Cars:</b> under <b>Change</b>, pick which car a camera is on. Its number, class, driver and navigator show on the feed. <b>Add, edit or remove cars</b> keeps the list.</li>
       <li>Camera mounted upside down? Tap the <b>rotate</b> button on that camera, or pick <b>Upside down</b> under <b>Change</b>. Rotation, car number and crew names go into the watch link, so set them before you send it.</li>
     </ul>
   </dialog>

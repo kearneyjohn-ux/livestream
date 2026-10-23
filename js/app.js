@@ -1,12 +1,23 @@
 import { parseSource, isBlockedHttp, encodeState, decodeState, watchLink, emptyPane, normalizePane, LAYOUTS, CORNERS, ROTATIONS, KIND_NAMES } from './sources.js';
 import { createPlayer } from './players.js';
+import { loadCars, saveCars, findCar, upsertCar, removeCar, carLabel, crewText } from './roster.js';
 
 const $ = (id) => document.getElementById(id);
 const STORE_KEY = 'gopro-split';
 const LAYOUT_NAMES = { auto: 'Auto', row: 'Side by side', col: 'Stacked', pip: 'Picture in picture' };
 
+// localStorage can be missing or throw (private browsing, blocked storage).
+const storage = (() => {
+  try {
+    return localStorage;
+  } catch {
+    return { getItem: () => null, setItem() {} };
+  }
+})();
+
 const state = loadState();
 const panes = [];
+let cars = loadCars(storage);
 
 // ---------- State: URL hash first (a shared link), then this browser's last setup ----------
 
@@ -67,6 +78,7 @@ function buildPane(index) {
     showExtras(pane);
     saveState();
   });
+  el.querySelector('.cars-link').addEventListener('click', () => openCars());
   el.querySelector('.help-link').addEventListener('click', (e) => {
     e.preventDefault();
     $('help').showModal();
@@ -88,14 +100,15 @@ function paneState(pane) {
   return state.panes[pane.index];
 }
 
-// The car number and crew caption, and which way up the picture goes.
+// The car number, class and crew caption, and which way up the picture goes.
 function showExtras(pane) {
-  const { car, driver, nav, rotate } = paneState(pane);
+  const { car, driver, nav, cls, rotate } = paneState(pane);
   const card = pane.el.querySelector('.car-card');
-  card.hidden = !(car || driver || nav);
+  card.hidden = !(car || driver || nav || cls);
   const num = card.querySelector('.car-num');
-  num.textContent = car;
-  num.hidden = !car;
+  num.querySelector('.num').textContent = car;
+  num.querySelector('.car-class').textContent = cls;
+  num.hidden = !(car || cls);
   for (const [role, name] of [['driver', driver], ['nav', nav]]) {
     const row = card.querySelector(`[data-role="${role}"]`);
     row.querySelector('b').textContent = name;
@@ -160,13 +173,11 @@ function setStatus(pane, text, level) {
 }
 
 function showSetup(pane) {
-  const { input, label, car, driver, nav, rotate } = paneState(pane);
+  const { input, label, car, rotate } = paneState(pane);
   const form = pane.form;
   form.elements.input.value = input;
   form.elements.label.value = label;
-  form.elements.car.value = car;
-  form.elements.driver.value = driver;
-  form.elements.nav.value = nav;
+  fillCarSelect(pane, findCar(cars, car)?.car ?? (car ? KEEP_CAR : ''));
   form.elements.rotate.value = String(rotate);
   form.querySelector('.setup-title').textContent = label || defaultName(pane.index);
   form.querySelector('.setup-error').hidden = true;
@@ -199,17 +210,145 @@ function submitSetup(pane) {
     error.hidden = false;
     return;
   }
+  const old = paneState(pane);
+  const chosen = f.car.value === KEEP_CAR ? old : findCar(cars, f.car.value);
   state.panes[pane.index] = normalizePane({
+    ...old,
     input,
     label,
-    car: f.car.value.trim(),
-    driver: f.driver.value.trim(),
-    nav: f.nav.value.trim(),
-    rotate: f.rotate.value,
+    car: chosen?.car || '',
+    driver: chosen?.driver || '',
+    nav: chosen?.nav || '',
+    cls: chosen?.cls || '',
+    rotate: Number(f.rotate.value),
+    off: false,
   });
   saveState();
   render(pane);
   toast(`${label || defaultName(pane.index)}: ${KIND_NAMES[source.kind]} stream`);
+}
+
+// ---------- Cars: a list kept on this device, picked for each camera ----------
+
+// A camera can show a car that isn't in this device's list (from a link, or since removed).
+const KEEP_CAR = '__keep';
+
+function fillCarSelect(pane, selected) {
+  const select = pane.form.elements.car;
+  const p = paneState(pane);
+  const options = [new Option('No car', ''), ...cars.map((c) => new Option(carLabel(c), c.car))];
+  if (p.car && !findCar(cars, p.car)) options.push(new Option(`${carLabel(p)} (not in the list)`, KEEP_CAR));
+  select.replaceChildren(...options);
+  select.value = selected;
+}
+
+let editingCar = '';
+
+function openCars() {
+  resetCarForm();
+  renderCarList();
+  $('carsDlg').showModal();
+}
+
+function renderCarList() {
+  const list = $('carList');
+  list.replaceChildren();
+  for (const c of cars) {
+    const li = document.createElement('li');
+    const num = document.createElement('span');
+    num.className = 'car-chip';
+    num.textContent = c.car;
+    const info = document.createElement('span');
+    info.className = 'car-info';
+    const crew = document.createElement('b');
+    crew.textContent = crewText(c) || 'No crew names';
+    const cls = document.createElement('small');
+    cls.textContent = c.cls;
+    info.append(crew, cls);
+    const edit = document.createElement('button');
+    edit.type = 'button';
+    edit.className = 'btn btn-sm';
+    edit.textContent = 'Edit';
+    edit.addEventListener('click', () => editCar(c));
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'btn btn-sm btn-ghost';
+    remove.textContent = 'Remove';
+    remove.addEventListener('click', () => {
+      if (!confirm(`Remove car ${carLabel(c)}?`)) return;
+      cars = removeCar(cars, c.car);
+      carsChanged(c.car, null);
+    });
+    li.append(num, info, edit, remove);
+    list.append(li);
+  }
+  if (!cars.length) {
+    const li = document.createElement('li');
+    li.className = 'muted';
+    li.textContent = 'No cars yet. Add one below.';
+    list.append(li);
+  }
+  // Offer the classes already in use while typing one.
+  const classes = [...new Set(cars.map((c) => c.cls).filter(Boolean))];
+  $('classList').replaceChildren(...classes.map((cls) => new Option(cls)));
+}
+
+function editCar(c) {
+  editingCar = c.car;
+  const f = $('carForm').elements;
+  for (const key of ['car', 'cls', 'driver', 'nav']) f[key].value = c[key];
+  $('carFormTitle').textContent = `Edit car ${c.car}`;
+  $('carSave').textContent = 'Save changes';
+  $('carCancel').hidden = false;
+  $('carError').hidden = true;
+  f.car.focus();
+}
+
+function resetCarForm() {
+  editingCar = '';
+  $('carForm').reset();
+  $('carFormTitle').textContent = 'Add a car';
+  $('carSave').textContent = 'Add car';
+  $('carCancel').hidden = true;
+  $('carError').hidden = true;
+}
+
+$('carCancel').addEventListener('click', resetCarForm);
+
+$('carForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const f = $('carForm').elements;
+  const input = { car: f.car.value, cls: f.cls.value, driver: f.driver.value, nav: f.nav.value };
+  const result = upsertCar(cars, input, editingCar);
+  if (result.error) {
+    $('carError').textContent = result.error;
+    $('carError').hidden = false;
+    return;
+  }
+  cars = result.cars;
+  const saved = findCar(cars, input.car.trim());
+  const verb = editingCar ? 'Saved' : 'Added';
+  carsChanged(editingCar, saved);
+  toast(`${verb} car ${saved.car}`);
+});
+
+// After a car is edited (or removed, `car` null): save the list, update any camera showing it,
+// and refresh open car pickers.
+function carsChanged(oldNumber, car) {
+  saveCars(storage, cars);
+  for (const pane of panes) {
+    const select = pane.form.elements.car;
+    const wasPicked = oldNumber && select.value.toLowerCase() === oldNumber.toLowerCase();
+    const p = paneState(pane);
+    if (oldNumber && p.car.toLowerCase() === oldNumber.toLowerCase()) {
+      Object.assign(p, { car: car?.car || '', driver: car?.driver || '', nav: car?.nav || '', cls: car?.cls || '' });
+      showExtras(pane);
+    }
+    if (!pane.form.hidden) fillCarSelect(pane, wasPicked ? car?.car || '' : select.value);
+  }
+  saveState();
+  resetCarForm();
+  renderCarList();
 }
 
 // ---------- Turning a camera off (e.g. its feed dropped) and back on ----------

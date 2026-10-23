@@ -81,8 +81,8 @@ test('Screen setup round-trips through the share link', () => {
     corner: 'tl',
     view: false,
     panes: [
-      { input: 'https://youtube.com/watch?v=dQw4w9WgXcQ&t=1', label: 'Bonnet & roof', car: '12', driver: 'John Kearney', nav: 'Seán Ó Briain', rotate: 180, off: false },
-      { input: 'https://cam.example.com:8889/truck2', label: '', car: '', driver: '', nav: '', rotate: 0, off: true },
+      { input: 'https://youtube.com/watch?v=dQw4w9WgXcQ&t=1', label: 'Bonnet & roof', car: '646', driver: 'Sam Commins', nav: 'Baxter Cook', cls: 'SXS Pro', rotate: 180, off: false },
+      { input: 'https://cam.example.com:8889/truck2', label: '', car: '', driver: '', nav: '', cls: '', rotate: 0, off: true },
     ],
   };
   const hash = encodeState(state);
@@ -121,7 +121,7 @@ test('Watch links are short, titled and open in watch-only mode', () => {
 });
 
 test('Saved cameras from older versions get the new fields filled in', () => {
-  assert.deepEqual(normalizePane({ input: 'x', label: 'Roof' }), { input: 'x', label: 'Roof', car: '', driver: '', nav: '', rotate: 0, off: false });
+  assert.deepEqual(normalizePane({ input: 'x', label: 'Roof' }), { input: 'x', label: 'Roof', car: '', driver: '', nav: '', cls: '', rotate: 0, off: false });
   assert.equal(normalizePane({ off: 'true' }).off, false);
   assert.deepEqual(normalizePane(null).rotate, 0);
   assert.equal(normalizePane({ rotate: '90' }).rotate, 90);
