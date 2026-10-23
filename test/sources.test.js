@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseSource, embedUrl, isBlockedHttp, encodeState, decodeState, shortInput, watchLink } from '../js/sources.js';
+import { parseSource, embedUrl, isBlockedHttp, encodeState, decodeState, shortInput, watchLink, normalizePane } from '../js/sources.js';
 
 test('YouTube links in every common shape', () => {
   const id = 'dQw4w9WgXcQ';
@@ -80,8 +80,8 @@ test('Screen setup round-trips through the share link', () => {
     layout: 'col',
     view: false,
     panes: [
-      { input: 'https://youtube.com/watch?v=dQw4w9WgXcQ&t=1', label: 'Bonnet & roof' },
-      { input: 'https://cam.example.com:8889/truck2', label: '' },
+      { input: 'https://youtube.com/watch?v=dQw4w9WgXcQ&t=1', label: 'Bonnet & roof', car: '12', driver: 'John Kearney', nav: 'Seán Ó Briain', rotate: 180 },
+      { input: 'https://cam.example.com:8889/truck2', label: '', car: '', driver: '', nav: '', rotate: 0 },
     ],
   };
   const hash = encodeState(state);
@@ -90,6 +90,8 @@ test('Screen setup round-trips through the share link', () => {
   assert.equal(decodeState(''), null);
   assert.equal(decodeState('#layout=row'), null);
   assert.equal(decodeState('#a=x&layout=bogus').layout, 'auto');
+  assert.equal(decodeState('#a=x&ar=45').panes[0].rotate, 0);
+  assert.equal(decodeState('#a=x&br=270').panes[1].rotate, 270);
 });
 
 test('Watch links are short, titled and open in watch-only mode', () => {
@@ -98,8 +100,8 @@ test('Watch links are short, titled and open in watch-only mode', () => {
     layout: 'auto',
     view: false,
     panes: [
-      { input: 'https://www.youtube.com/live/dQw4w9WgXcQ?si=Xy12abcdEFGH', label: 'Bonnet' },
-      { input: 'https://www.twitch.tv/TruckCam', label: 'Roof' },
+      normalizePane({ input: 'https://www.youtube.com/live/dQw4w9WgXcQ?si=Xy12abcdEFGH', label: 'Bonnet' }),
+      normalizePane({ input: 'https://www.twitch.tv/TruckCam', label: 'Roof' }),
     ],
   };
   const link = watchLink(state, 'https://me.github.io/livestream/#a=old');
@@ -112,4 +114,11 @@ test('Watch links are short, titled and open in watch-only mode', () => {
   // Links the app can't shorten go through unchanged.
   assert.equal(shortInput('https://cam.example.com:8889/truck1'), 'https://cam.example.com:8889/truck1');
   assert.equal(shortInput('not a link at all'), 'not a link at all');
+});
+
+test('Saved cameras from older versions get the new fields filled in', () => {
+  assert.deepEqual(normalizePane({ input: 'x', label: 'Roof' }), { input: 'x', label: 'Roof', car: '', driver: '', nav: '', rotate: 0 });
+  assert.deepEqual(normalizePane(null).rotate, 0);
+  assert.equal(normalizePane({ rotate: '90' }).rotate, 90);
+  assert.equal(normalizePane({ car: 12 }).car, '');
 });

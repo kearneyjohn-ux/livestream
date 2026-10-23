@@ -14,13 +14,16 @@
 </head>
 <body>
   <header class="topbar">
-    <div class="brand"><img src="icon.svg" alt="" width="22" height="22"><span id="brandName">GoPro Split Screen</span></div>
+    <div class="brand">
+      <img class="logo" src="assets/westlime-logo-wide.svg" alt="Westlime Motorsport">
+      <span class="title" id="brandName">GoPro Split Screen</span>
+    </div>
     <div class="tools">
-      <button class="btn" id="layoutBtn" title="Side by side or one above the other">Layout: Auto</button>
-      <button class="btn" id="swapBtn" title="Swap the two cameras">Swap</button>
-      <button class="btn" id="shareBtn" title="Send someone a link to watch both cameras">Share<span class="long">&nbsp;link</span></button>
-      <button class="btn" id="fullBtn" hidden>Full<span class="long">&nbsp;screen</span></button>
-      <button class="btn" id="helpBtn">Help</button>
+      <button class="btn" id="layoutBtn" title="Side by side or one above the other" aria-label="Layout"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="8" height="14" rx="1.5"/><rect x="13" y="5" width="8" height="14" rx="1.5"/></svg><span class="lbl">Layout: Auto</span></button>
+      <button class="btn" id="swapBtn" title="Swap the two cameras" aria-label="Swap cameras"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h15l-4-4"/><path d="M20 16H5l4 4"/></svg><span class="lbl">Swap</span></button>
+      <button class="btn" id="shareBtn" title="Send someone a link to watch both cameras" aria-label="Share"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"/><path d="m7 8 5-5 5 5"/><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg><span class="lbl">Share</span></button>
+      <button class="btn" id="fullBtn" title="Full screen" aria-label="Full screen" hidden><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg><span class="lbl">Full screen</span></button>
+      <button class="btn" id="helpBtn" title="Help" aria-label="Help"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5v.7"/><path d="M12 17.5h.01"/></svg><span class="lbl">Help</span></button>
     </div>
   </header>
 
@@ -31,12 +34,20 @@
   <template id="paneTpl">
     <section class="pane">
       <div class="stage"></div>
+      <div class="car-card" hidden>
+        <span class="car-num"></span>
+        <span class="crew">
+          <span class="crew-row" data-role="driver"><small>Driver</small><b></b></span>
+          <span class="crew-row" data-role="nav"><small>Navigator</small><b></b></span>
+        </span>
+      </div>
       <div class="pane-bar">
         <span class="dot" aria-hidden="true"></span>
         <b class="pane-name"></b>
         <span class="pane-status" role="status"></span>
         <span class="spacer"></span>
         <button class="btn btn-sm pane-mute" hidden>Sound off</button>
+        <button class="btn btn-sm pane-rotate" title="Rotate the picture a quarter turn" aria-label="Rotate picture"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 4v5h-5"/></svg></button>
         <button class="btn btn-sm pane-change">Change</button>
       </div>
       <form class="setup" hidden>
@@ -45,9 +56,28 @@
           <input name="input" type="text" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false"
                  placeholder="https://youtube.com/live/… or https://server/truck1/index.m3u8">
         </label>
-        <label>Name
-          <input name="label" type="text" maxlength="40" placeholder="e.g. Bonnet cam">
-        </label>
+        <div class="setup-grid">
+          <label>Car number
+            <input name="car" type="text" maxlength="6" autocomplete="off" placeholder="e.g. 12">
+          </label>
+          <label>Camera name
+            <input name="label" type="text" maxlength="40" placeholder="e.g. Bonnet cam">
+          </label>
+          <label>Driver
+            <input name="driver" type="text" maxlength="40" autocomplete="off" placeholder="Driver's name">
+          </label>
+          <label>Navigator
+            <input name="nav" type="text" maxlength="40" autocomplete="off" placeholder="Navigator's name">
+          </label>
+          <label class="wide">Picture
+            <select name="rotate">
+              <option value="0">The right way up</option>
+              <option value="180">Upside down: flip it</option>
+              <option value="90">Turn 90° clockwise</option>
+              <option value="270">Turn 90° anticlockwise</option>
+            </select>
+          </label>
+        </div>
         <p class="setup-error" role="alert" hidden></p>
         <div class="btn-row">
           <button class="btn btn-go" type="submit">Watch</button>
@@ -97,6 +127,7 @@
       <li>A camera that drops out is reconnected automatically. The coloured dot shows each feed: green live, amber waiting, red problem.</li>
       <li><b>Share</b> makes a watch link to text or email. It opens straight to both cameras, with nothing to set up.</li>
       <li>Sound starts off. Tap <b>Sound on</b> on one camera; YouTube and Twitch have their own speaker button.</li>
+      <li>Camera mounted upside down? Tap the <b>rotate</b> button on that camera, or pick <b>Upside down</b> under <b>Change</b>. Rotation, car number and crew names go into the watch link, so set them before you send it.</li>
     </ul>
   </dialog>
 

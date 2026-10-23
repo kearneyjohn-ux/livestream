@@ -109,17 +109,36 @@ export function shortInput(input) {
   return input;
 }
 
-// Screen setup <-> URL hash, so a link can be bookmarked or sent to the crew.
-// #a=<link>&an=<name>&b=<link>&bn=<name>&t=<title>&layout=row&view=1
+// Screen setup <-> URL hash, so a link can be bookmarked or sent to the crew. Per camera
+// (a = left/top, b = right/bottom): link, n = camera name, c = car number, d = driver,
+// v = navigator, r = rotation in degrees.
+// #a=<link>&an=Bonnet&ac=12&ad=…&av=…&ar=180&b=…&t=<title>&layout=row&view=1
 // `view=1` is a watch link: it only shows the cameras, with nothing to set up or change.
 const KEYS = ['a', 'b'];
+const FIELDS = { label: 'n', car: 'c', driver: 'd', nav: 'v' };
 export const LAYOUTS = ['auto', 'row', 'col'];
+export const ROTATIONS = [0, 90, 180, 270];
+
+export function emptyPane() {
+  return { input: '', label: '', car: '', driver: '', nav: '', rotate: 0 };
+}
+
+// Fills in anything missing from a saved or linked camera, and drops anything invalid.
+export function normalizePane(p) {
+  const pane = emptyPane();
+  for (const key of ['input', ...Object.keys(FIELDS)]) pane[key] = typeof p?.[key] === 'string' ? p[key] : '';
+  const r = Number(p?.rotate);
+  pane.rotate = ROTATIONS.includes(r) ? r : 0;
+  return pane;
+}
 
 export function encodeState(state) {
   const q = new URLSearchParams();
   state.panes.forEach((p, i) => {
-    if (p.input) q.set(KEYS[i], state.view ? shortInput(p.input) : p.input);
-    if (p.label) q.set(`${KEYS[i]}n`, p.label);
+    const k = KEYS[i];
+    if (p.input) q.set(k, state.view ? shortInput(p.input) : p.input);
+    for (const [field, suffix] of Object.entries(FIELDS)) if (p[field]) q.set(k + suffix, p[field]);
+    if (p.rotate) q.set(`${k}r`, String(p.rotate));
   });
   if (state.title) q.set('t', state.title);
   if (state.layout && state.layout !== 'auto') q.set('layout', state.layout);
@@ -135,7 +154,11 @@ export function decodeState(hash) {
     title: q.get('t') || '',
     layout: LAYOUTS.includes(layout) ? layout : 'auto',
     view: q.get('view') === '1',
-    panes: KEYS.map((k) => ({ input: q.get(k) || '', label: q.get(`${k}n`) || '' })),
+    panes: KEYS.map((k) => {
+      const p = { input: q.get(k) || '', rotate: q.get(`${k}r`) };
+      for (const [field, suffix] of Object.entries(FIELDS)) p[field] = q.get(k + suffix) || '';
+      return normalizePane(p);
+    }),
   };
 }
 

@@ -1,4 +1,4 @@
-import { parseSource, isBlockedHttp, encodeState, decodeState, watchLink, LAYOUTS, KIND_NAMES } from './sources.js';
+import { parseSource, isBlockedHttp, encodeState, decodeState, watchLink, emptyPane, normalizePane, LAYOUTS, ROTATIONS, KIND_NAMES } from './sources.js';
 import { createPlayer } from './players.js';
 
 const $ = (id) => document.getElementById(id);
@@ -16,10 +16,11 @@ function loadState() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORE_KEY));
     if (saved?.panes?.length === 2) {
-      return { title: saved.title || '', layout: LAYOUTS.includes(saved.layout) ? saved.layout : 'auto', view: false, panes: saved.panes };
+      const layout = LAYOUTS.includes(saved.layout) ? saved.layout : 'auto';
+      return { title: saved.title || '', layout, view: false, panes: saved.panes.map(normalizePane) };
     }
   } catch {}
-  return { title: '', layout: 'auto', view: false, panes: [{ input: '', label: '' }, { input: '', label: '' }] };
+  return { title: '', layout: 'auto', view: false, panes: [emptyPane(), emptyPane()] };
 }
 
 function saveState() {
@@ -53,6 +54,12 @@ function buildPane(index) {
   el.querySelector('.pane-change').addEventListener('click', () => showSetup(pane));
   el.querySelector('.setup-cancel').addEventListener('click', () => hideSetup(pane));
   el.querySelector('.pane-mute').addEventListener('click', () => toggleSound(pane));
+  el.querySelector('.pane-rotate').addEventListener('click', () => {
+    const p = paneState(pane);
+    p.rotate = ROTATIONS[(ROTATIONS.indexOf(p.rotate) + 1) % ROTATIONS.length];
+    showExtras(pane);
+    saveState();
+  });
   el.querySelector('.help-link').addEventListener('click', (e) => {
     e.preventDefault();
     $('help').showModal();
@@ -73,9 +80,28 @@ function paneState(pane) {
   return state.panes[pane.index];
 }
 
+// The car number and crew caption, and which way up the picture goes.
+function showExtras(pane) {
+  const { car, driver, nav, rotate } = paneState(pane);
+  const card = pane.el.querySelector('.car-card');
+  card.hidden = !(car || driver || nav);
+  const num = card.querySelector('.car-num');
+  num.textContent = car;
+  num.hidden = !car;
+  for (const [role, name] of [['driver', driver], ['nav', nav]]) {
+    const row = card.querySelector(`[data-role="${role}"]`);
+    row.querySelector('b').textContent = name;
+    row.hidden = !name;
+  }
+  card.querySelector('.crew').hidden = !(driver || nav);
+  pane.el.dataset.rotate = rotate;
+  pane.el.style.setProperty('--rot', `${rotate}deg`);
+}
+
 function render(pane) {
   const { input, label } = paneState(pane);
   pane.el.querySelector('.pane-name').textContent = label || defaultName(pane.index);
+  showExtras(pane);
   stopPlayer(pane);
   let source = null;
   let problem = null;
@@ -121,10 +147,14 @@ function setStatus(pane, text, level) {
 }
 
 function showSetup(pane) {
-  const { input, label } = paneState(pane);
+  const { input, label, car, driver, nav, rotate } = paneState(pane);
   const form = pane.form;
   form.elements.input.value = input;
   form.elements.label.value = label;
+  form.elements.car.value = car;
+  form.elements.driver.value = driver;
+  form.elements.nav.value = nav;
+  form.elements.rotate.value = String(rotate);
   form.querySelector('.setup-title').textContent = label || defaultName(pane.index);
   form.querySelector('.setup-error').hidden = true;
   // Cancel only makes sense when there's a stream to go back to.
@@ -140,8 +170,9 @@ function hideSetup(pane) {
 
 function submitSetup(pane) {
   const form = pane.form;
-  const input = form.elements.input.value.trim();
-  const label = form.elements.label.value.trim();
+  const f = form.elements;
+  const input = f.input.value.trim();
+  const label = f.label.value.trim();
   const error = form.querySelector('.setup-error');
   let source;
   try {
@@ -155,7 +186,14 @@ function submitSetup(pane) {
     error.hidden = false;
     return;
   }
-  state.panes[pane.index] = { input, label };
+  state.panes[pane.index] = normalizePane({
+    input,
+    label,
+    car: f.car.value.trim(),
+    driver: f.driver.value.trim(),
+    nav: f.nav.value.trim(),
+    rotate: f.rotate.value,
+  });
   saveState();
   render(pane);
   toast(`${label || defaultName(pane.index)}: ${KIND_NAMES[source.kind]} stream`);
@@ -187,7 +225,8 @@ function updateMuteButton(pane) {
 
 function applyLayout() {
   $('split').dataset.layout = state.layout;
-  $('layoutBtn').innerHTML = `<span class="long">Layout: </span>${LAYOUT_NAMES[state.layout]}`;
+  $('layoutBtn').querySelector('.lbl').textContent = `Layout: ${LAYOUT_NAMES[state.layout]}`;
+  $('layoutBtn').setAttribute('aria-label', `Layout: ${LAYOUT_NAMES[state.layout]}`);
 }
 
 $('layoutBtn').addEventListener('click', () => {

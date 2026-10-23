@@ -1,5 +1,7 @@
 # GoPro Split Screen
 
+![Westlime Motorsport](assets/westlime-logo-wide.svg)
+
 Watch two GoPro live feeds side by side, e.g. two cameras on a race truck streaming over Starlink. It runs in any browser (phone, tablet, laptop, TV), so the crew can watch from the pits or from home.
 
 ## Using it
@@ -9,10 +11,11 @@ Watch two GoPro live feeds side by side, e.g. two cameras on a race truck stream
    - **Twitch** channels (`twitch.tv/name`)
    - **HLS** links ending in `.m3u8`
    - **WebRTC (WHEP)** links from your own stream server, e.g. MediaMTX `https://server:8889/truck1` or Cloudflare Stream `…/webRTC/play`
-2. Name each camera (e.g. "Bonnet cam") if you like.
-3. Tap **Share**, give the broadcast a title (e.g. "KDR 2026 · Truck 12") and tap **Copy link** (or **Send…** on a phone) to text or email it.
+2. Optionally fill in the **car number**, **driver** and **navigator**. They show on that feed as a caption in Westlime green, like on TV. You can also name the camera (e.g. "Bonnet cam").
+3. If a camera is mounted upside down or sideways, set **Picture** to *Upside down* (or a quarter turn), or tap the **rotate** button on the feed. Each tap turns it 90° clockwise.
+4. Tap **Share**, give the broadcast a title (e.g. "KDR 2026 · Truck 12") and tap **Copy link** (or **Send…** on a phone) to text or email it.
 
-Whoever opens the watch link goes straight to both cameras, with the title at the top. They can't see setup forms or change your cameras, and nothing they do changes your own setup. YouTube links are shortened to their video ID, so the link stays short enough to text. Your own screen remembers your setup, and its address works as an edit link for you.
+Whoever opens the watch link goes straight to both cameras, with the title at the top, and each feed keeps its car number, crew names and rotation. They can't see setup forms or change your cameras, and nothing they do changes your own setup. YouTube links are shortened to their video ID, so the link stays short enough to text. Your own screen remembers your setup, and its address works as an edit link for you.
 
 Other controls:
 - **Layout**: *Auto* puts the cameras side by side in landscape and one above the other in portrait. You can also fix it to *Side by side* or *Stacked*.
@@ -56,4 +59,5 @@ npm test    # unit tests for link parsing and watch links (Node 20+)
 - `js/sources.js`: works out what a pasted link is and how to play it, and builds watch links (no DOM, runs in Node)
 - `js/players.js`: YouTube/Twitch embeds, HLS and WebRTC (WHEP) players with automatic reconnect
 - `js/app.js`: the split screen, setup forms, layout, sound and share link
+- `assets/westlime-logo-wide.svg`: Westlime Motorsport logo, from the Race Course Plotter (lettering converted to outlines from Cinzel and Kaushan Script, both SIL Open Font License)
 - `vendor/hls.light.min.js`: [hls.js](https://github.com/video-dev/hls.js) 1.7.3 (Apache 2.0, see `vendor/hls.js-LICENSE`) for HLS in browsers other than Safari
