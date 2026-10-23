@@ -1,6 +1,7 @@
 import { parseSource, isBlockedHttp, encodeState, decodeState, watchLink, watchHash, emptyPane, normalizePane, LAYOUTS, CORNERS, ROTATIONS, KIND_NAMES } from './sources.js';
 import { createPlayer } from './players.js';
 import { loadCars, saveCars, findCar, upsertCar, removeCar, carLabel, crewText } from './roster.js';
+import { createChannel, channelParam, parseChannelParam, sealMessage, openMessage, publish, fetchCached, subscribe } from './live.js';
 
 const $ = (id) => document.getElementById(id);
 const STORE_KEY = 'gopro-split';
@@ -19,6 +20,10 @@ const state = loadState();
 const panes = [];
 let cars = loadCars(storage);
 
+// A live watch link names the channel its owner sends changes on.
+const liveParam = new URLSearchParams(location.hash.slice(1)).get('live');
+const viewerChannel = state.view ? parseChannelParam(liveParam) : null;
+
 // ---------- State: URL hash first (a shared link), then this browser's last setup ----------
 
 function loadState() {
@@ -36,13 +41,15 @@ function loadState() {
 }
 
 function saveState() {
-  const hash = state.view ? watchHash(state) : encodeState(state);
+  // A live watch link keeps its live channel in the address bar.
+  const hash = state.view ? watchHash(state) + (viewerChannel ? `&live=${liveParam}` : '') : encodeState(state);
   history.replaceState(null, '', hash ? `#${hash}` : location.pathname + location.search);
   // Someone watching a link shouldn't lose their own camera setup to it.
   if (state.view) return;
   try {
     localStorage.setItem(STORE_KEY, JSON.stringify(state));
   } catch {}
+  queueLiveSend();
 }
 
 // A watch link shows just the cameras and the title, locked as they were set up.
@@ -421,9 +428,9 @@ $('layoutBtn').addEventListener('click', () => {
   saveState();
 });
 
-$('swapBtn').addEventListener('click', () => {
-  // Swap the on-screen order rather than moving the elements: moving a YouTube or Twitch
-  // player reloads it, and neither feed should drop.
+// Swap the on-screen order rather than moving the elements: moving a YouTube or Twitch
+// player reloads it, and neither feed should drop.
+function swapPanes() {
   state.panes.reverse();
   panes.reverse();
   panes.forEach((p, i) => {
@@ -432,15 +439,134 @@ $('swapBtn').addEventListener('click', () => {
     if (!p.form.hidden) showSetup(p);
     else if (!paneState(p).label) p.el.querySelector('.pane-name').textContent = defaultName(i);
   });
+}
+
+$('swapBtn').addEventListener('click', () => {
+  swapPanes();
   applyLayout();
   saveState();
 });
+
+// ---------- Live links: the owner sends each change, viewers apply it ----------
+
+const LIVE_KEY = 'gopro-split-live';
+const LIVE_ON_KEY = 'gopro-split-live-on';
+// ntfy.sh keeps messages for 12 hours, so the owner's screen resends now and then to keep
+// the latest setup there for anyone opening the link later.
+const RESEND_MS = 4 * 60 * 60 * 1000;
+
+let liveChannel = null;
+try {
+  liveChannel = JSON.parse(storage.getItem(LIVE_KEY));
+} catch {}
+let liveOn = storage.getItem(LIVE_ON_KEY) !== '0';
+let liveSeq = 0;
+let liveTimer = null;
+let liveStatus = '';
+
+async function ensureChannel() {
+  if (liveChannel) return liveChannel;
+  liveChannel = await createChannel();
+  try {
+    storage.setItem(LIVE_KEY, JSON.stringify(liveChannel));
+  } catch {}
+  return liveChannel;
+}
+
+function setLiveStatus(text) {
+  liveStatus = text;
+  $('liveStatus').textContent = liveOn ? text : 'Off: the link shows the cameras as they are now, and later changes won\'t reach it.';
+}
+
+function queueLiveSend(delay = 800) {
+  if (state.view || !liveOn || !liveChannel) return;
+  clearTimeout(liveTimer);
+  liveTimer = setTimeout(sendLive, delay);
+}
+
+async function sendLive() {
+  const ch = liveChannel;
+  if (!ch || !liveOn || state.view) return;
+  // Newer than anything sent before, even if this device's clock goes backwards.
+  liveSeq = Math.max(Date.now(), liveSeq + 1);
+  try {
+    await publish(ch, await sealMessage(ch, liveSeq, encodeState({ ...state, view: false })));
+    setLiveStatus(`On: everyone watching gets your changes within a few seconds. Last sent ${new Date().toLocaleTimeString()}.`);
+  } catch {
+    setLiveStatus("Couldn't reach the live service. Trying again; viewers keep the last update until then.");
+    queueLiveSend(15000);
+  }
+}
+
+// Viewer: apply the owner's latest setup without restarting feeds that haven't changed.
+let viewerSeq = 0;
+
+function applyRemote(next) {
+  const old = state.panes;
+  if (old[0].input !== old[1].input && next.panes[0].input === old[1].input && next.panes[1].input === old[0].input) {
+    swapPanes();
+  }
+  Object.assign(state, { title: next.title, layout: next.layout, corner: next.corner });
+  panes.forEach((pane, i) => {
+    const before = state.panes[i];
+    const after = next.panes[i];
+    state.panes[i] = after;
+    if (before.input !== after.input || before.off !== after.off) {
+      render(pane);
+    } else {
+      pane.el.querySelector('.pane-name').textContent = after.label || defaultName(i);
+      showExtras(pane);
+    }
+  });
+  applyMode();
+  applyLayout();
+  saveState();
+}
+
+async function receive(payloads) {
+  let newest = null;
+  for (const payload of payloads) {
+    const msg = await openMessage(viewerChannel, payload);
+    if (msg && msg.seq > viewerSeq && (!newest || msg.seq > newest.seq)) newest = msg;
+  }
+  // Checked again: another update may have been applied while these were being opened.
+  if (!newest || newest.seq <= viewerSeq) return;
+  const next = decodeState(`#${newest.setup}`);
+  if (!next) return;
+  const first = viewerSeq === 0;
+  viewerSeq = newest.seq;
+  applyRemote({ ...next, view: true });
+  if (!first) toast('Updated');
+}
+
+function setBadge(level) {
+  $('liveBadge').hidden = false;
+  $('liveBadge').dataset.level = level;
+  $('liveBadgeText').textContent = level === 'ok' ? 'Live' : 'Reconnecting…';
+}
+
+async function catchUp() {
+  try {
+    await receive(await fetchCached(viewerChannel));
+  } catch {}
+}
+
+function startViewer() {
+  setBadge('wait');
+  catchUp();
+  subscribe(viewerChannel, {
+    onPayload: (payload) => receive([payload]),
+    onStatus: setBadge,
+    onReconnect: catchUp,
+  });
+}
 
 // ---------- Sending a watch link ----------
 
 function updateShare() {
   const ready = state.panes.some((p) => p.input);
-  const url = ready ? watchLink(state, location.href) : '';
+  const live = liveOn && liveChannel ? `&live=${channelParam(liveChannel)}` : '';
+  const url = ready ? watchLink(state, location.href) + live : '';
   $('shareUrl').value = url;
   $('shareOpen').href = url || '#';
   $('shareWarn').hidden = ready;
@@ -448,11 +574,43 @@ function updateShare() {
   return url;
 }
 
-$('shareBtn').addEventListener('click', () => {
+$('shareBtn').addEventListener('click', async () => {
   $('shareTitle').value = state.title;
   $('shareSend').hidden = !navigator.share;
+  $('shareLive').checked = liveOn;
+  $('shareNewLive').hidden = !liveOn;
+  setLiveStatus(liveStatus || 'Setting up…');
   updateShare();
   $('shareDlg').showModal();
+  if (liveOn) {
+    await ensureChannel();
+    updateShare();
+    sendLive();
+  }
+});
+
+$('shareLive').addEventListener('change', async () => {
+  liveOn = $('shareLive').checked;
+  try {
+    storage.setItem(LIVE_ON_KEY, liveOn ? '1' : '0');
+  } catch {}
+  $('shareNewLive').hidden = !liveOn;
+  setLiveStatus(liveOn ? 'Setting up…' : '');
+  if (liveOn) {
+    await ensureChannel();
+    sendLive();
+  }
+  updateShare();
+});
+
+$('shareNewLive').addEventListener('click', async () => {
+  if (!confirm('Make a new live link? Anyone with the current link keeps what they see now but stops getting your changes.')) return;
+  liveChannel = null;
+  await ensureChannel();
+  liveSeq = 0;
+  updateShare();
+  sendLive();
+  toast('New live link ready. Send it to everyone watching.');
 });
 
 $('shareTitle').addEventListener('input', () => {
@@ -556,3 +714,5 @@ applyLayout();
 panes.forEach(render);
 saveState();
 wake();
+if (viewerChannel) startViewer();
+if (!state.view) setInterval(() => queueLiveSend(0), RESEND_MS);

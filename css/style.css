@@ -28,6 +28,9 @@ button, input, select { font: inherit; color: inherit; }
 a { color: var(--accent); }
 code { background: var(--card); padding: 1px 5px; border-radius: 4px; font-size: 13px; overflow-wrap: anywhere; }
 .muted { color: var(--muted); }
+.small { font-size: 13px; }
+.check { display: flex; align-items: center; gap: 10px; margin: 0 0 6px; cursor: pointer; }
+.check input { width: 20px; height: 20px; accent-color: var(--go); flex: none; }
 
 .btn {
   display: inline-flex;
@@ -111,6 +114,12 @@ code { background: var(--card); padding: 1px 5px; border-radius: 4px; font-size:
 .pane.inset .car-card { left: 6px; bottom: 6px; font-size: 10px; }
 .pane.inset .car-class { display: none; }
 .pane-corner { display: none; }
+/* On a narrow screen the small window would cover the main camera's caption, so lift it clear. */
+@container (max-width: 700px) {
+  .split[data-layout="pip"][data-showing="2"]:is([data-corner="br"], [data-corner="bl"]) .pane:not(.inset) .car-card {
+    bottom: calc(clamp(160px, 32cqw, 520px) * 9 / 16 + 24px);
+  }
+}
 .pane.inset .pane-corner { display: inline-flex; }
 
 /* Buttons to turn cameras back on. */
@@ -281,6 +290,14 @@ dialog li { margin-bottom: 6px; }
 #shareDlg .muted { margin: 0 0 14px; }
 #shareUrl { font-size: 14px; color: var(--muted); }
 #shareWarn { margin: 0 0 12px; }
+#shareDlg .live-status { margin: 0 0 14px 30px; }
+#shareDlg .new-live { margin-top: 14px; font-size: 13px; }
+
+/* Viewers of a live link: shows whether changes are coming through. */
+.live-badge { display: inline-flex; align-items: center; gap: 6px; flex: none; padding: 3px 9px; border-radius: 999px; background: var(--card); font-size: 12px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
+.live-badge .dot { width: 8px; height: 8px; box-shadow: none; }
+.live-badge[data-level="ok"] .dot { background: var(--bad); animation: blink 1.2s infinite alternate; }
+.live-badge[data-level="wait"] .dot { background: var(--wait); }
 .btn.disabled { opacity: .4; pointer-events: none; }
 
 /* Watch link: just the cameras. */

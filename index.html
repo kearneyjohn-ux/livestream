@@ -17,6 +17,7 @@
     <div class="brand">
       <img class="logo" src="assets/westlime-logo-wide.svg" alt="Westlime Motorsport">
       <span class="title" id="brandName">GoPro Split Screen</span>
+      <span class="live-badge" id="liveBadge" hidden><span class="dot" aria-hidden="true"></span><span id="liveBadgeText">Live</span></span>
     </div>
     <div class="tools">
       <button class="btn" id="layoutBtn" title="Side by side or one above the other" aria-label="Layout"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="8" height="14" rx="1.5"/><rect x="13" y="5" width="8" height="14" rx="1.5"/></svg><span class="lbl">Layout: Auto</span></button>
@@ -89,7 +90,9 @@
   <dialog id="shareDlg">
     <form method="dialog" class="help-close"><button class="btn">Close</button></form>
     <h2>Send a watch link</h2>
-    <p class="muted">Whoever opens it sees the cameras live, exactly as you've set them up: same layout, cars and rotation. They can only go full screen and turn sound on or off.</p>
+    <p class="muted">Whoever opens it sees the cameras exactly as you've set them up: same layout, cars and rotation. They can only go full screen and turn sound on or off.</p>
+    <label class="check"><input type="checkbox" id="shareLive" checked> Keep everyone's screen updated with my changes</label>
+    <p class="muted small live-status" id="liveStatus"></p>
     <label class="field">Title
       <input id="shareTitle" type="text" maxlength="60" placeholder="e.g. KDR 2026 · Truck 12">
     </label>
@@ -102,6 +105,7 @@
       <button class="btn" id="shareSend" type="button" hidden>Send…</button>
       <a class="btn btn-ghost" id="shareOpen" href="#" target="_blank" rel="noopener">Try it</a>
     </div>
+    <button type="button" class="link-btn new-live" id="shareNewLive">Start a new live link (the old one stops updating)</button>
   </dialog>
 
   <dialog id="carsDlg">
@@ -153,7 +157,7 @@
     <ul>
       <li>Two streams share the Starlink upload. Use <b>720p</b> on the cameras if either one keeps buffering.</li>
       <li>A camera that drops out is reconnected automatically. The coloured dot shows each feed: green live, amber waiting, red problem.</li>
-      <li><b>Share</b> makes a watch link to text or email. It opens straight to the cameras, locked as you set them up: viewers can only go full screen and turn sound on or off. Change something? Send a new link.</li>
+      <li><b>Share</b> makes a watch link to text or email. It opens straight to the cameras, locked as you set them up: viewers can only go full screen and turn sound on or off. With <b>Keep everyone's screen updated</b> on, your changes (turning off a dropped camera, swapping, cars) reach everyone watching within a few seconds, as long as this page is open on your device.</li>
       <li>Sound starts off. Tap <b>Sound on</b> on one camera; YouTube and Twitch have their own speaker button.</li>
       <li>A feed dropped out? Tap the <b>power</b> button on it to turn that camera off: the other fills the screen and the dropped one stops using data. <b>Turn on</b> at the bottom brings it back.</li>
       <li><b>Layout → Picture in picture</b> shows one camera full screen with the other in a small window. <b>Swap</b> changes which is which; the corner button on the small window moves it.</li>
