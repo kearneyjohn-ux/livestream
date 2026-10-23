@@ -103,10 +103,9 @@ function defaultName(i) {
   return `Camera ${i + 1}`;
 }
 
-// One camera per car, so a camera is known by its car once one is picked.
+// One camera per car, so a camera is known by its car number once one is picked.
 function paneName(pane) {
-  const { car } = paneState(pane);
-  return car ? `Car ${car}` : defaultName(pane.index);
+  return paneState(pane).car || defaultName(pane.index);
 }
 
 function paneState(pane) {
