@@ -11,7 +11,7 @@ Watch two GoPro live feeds side by side, e.g. two cameras on a race truck stream
    - **Twitch** channels (`twitch.tv/name`)
    - **HLS** links ending in `.m3u8`
    - **WebRTC (WHEP)** links from your own stream server, e.g. MediaMTX `https://server:8889/truck1` or Cloudflare Stream `…/webRTC/play`
-2. Pick the **car** the camera is on. Its number, class, driver and navigator show on that feed as a caption in Westlime green, like on TV. You can also name the camera (e.g. "Bonnet cam").
+2. Pick the **car** the camera is on (one camera per car). Its number, class, driver and navigator show on that feed as a caption in Westlime green, like on TV, and the feed is labelled by car, e.g. "Car 646".
    - **Add, edit or remove cars** (under the car picker) keeps the list of cars: number, class, driver and navigator. It starts with 646 (Sam Commins / Baxter Cook, SXS Pro), 467 (Andrew Commins / Anthony Cook, Extreme 2WD) and 479 (Nick Commins / Lachlan Bennie, Extreme 2WD). Editing a car updates any camera showing it.
    - The list is saved on each device. A watch link carries the cars it shows, so viewers don't need the list.
 3. If a camera is mounted upside down or sideways, set **Picture** to *Upside down* (or a quarter turn), or tap the **rotate** button on the feed. Each tap turns it 90° clockwise.

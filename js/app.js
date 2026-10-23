@@ -103,6 +103,12 @@ function defaultName(i) {
   return `Camera ${i + 1}`;
 }
 
+// One camera per car, so a camera is known by its car once one is picked.
+function paneName(pane) {
+  const { car } = paneState(pane);
+  return car ? `Car ${car}` : defaultName(pane.index);
+}
+
 function paneState(pane) {
   return state.panes[pane.index];
 }
@@ -110,6 +116,7 @@ function paneState(pane) {
 // The car number, class and crew caption, and which way up the picture goes.
 function showExtras(pane) {
   const { car, driver, nav, cls, rotate } = paneState(pane);
+  pane.el.querySelector('.pane-name').textContent = paneName(pane);
   const card = pane.el.querySelector('.car-card');
   card.hidden = !(car || driver || nav || cls);
   const num = card.querySelector('.car-num');
@@ -127,8 +134,7 @@ function showExtras(pane) {
 }
 
 function render(pane) {
-  const { input, label } = paneState(pane);
-  pane.el.querySelector('.pane-name').textContent = label || defaultName(pane.index);
+  const { input } = paneState(pane);
   showExtras(pane);
   stopPlayer(pane);
   // A camera that's turned off doesn't play at all, so it uses no data.
@@ -180,13 +186,12 @@ function setStatus(pane, text, level) {
 }
 
 function showSetup(pane) {
-  const { input, label, car, rotate } = paneState(pane);
+  const { input, car, rotate } = paneState(pane);
   const form = pane.form;
   form.elements.input.value = input;
-  form.elements.label.value = label;
   fillCarSelect(pane, findCar(cars, car)?.car ?? (car ? KEEP_CAR : ''));
   form.elements.rotate.value = String(rotate);
-  form.querySelector('.setup-title').textContent = label || defaultName(pane.index);
+  form.querySelector('.setup-title').textContent = defaultName(pane.index);
   form.querySelector('.setup-error').hidden = true;
   // Cancel only makes sense when there's a stream to go back to.
   form.querySelector('.setup-cancel').hidden = !pane.player;
@@ -203,7 +208,6 @@ function submitSetup(pane) {
   const form = pane.form;
   const f = form.elements;
   const input = f.input.value.trim();
-  const label = f.label.value.trim();
   const error = form.querySelector('.setup-error');
   let source;
   try {
@@ -222,7 +226,6 @@ function submitSetup(pane) {
   state.panes[pane.index] = normalizePane({
     ...old,
     input,
-    label,
     car: chosen?.car || '',
     driver: chosen?.driver || '',
     nav: chosen?.nav || '',
@@ -232,7 +235,7 @@ function submitSetup(pane) {
   });
   saveState();
   render(pane);
-  toast(`${label || defaultName(pane.index)}: ${KIND_NAMES[source.kind]} stream`);
+  toast(`${paneName(pane)}: ${KIND_NAMES[source.kind]} stream`);
 }
 
 // ---------- Cars: a list kept on this device, picked for each camera ----------
@@ -374,7 +377,7 @@ function updateRestore() {
   for (const pane of off) {
     const btn = document.createElement('button');
     btn.className = 'btn btn-go';
-    btn.textContent = `Turn on ${paneState(pane).label || defaultName(pane.index)}`;
+    btn.textContent = `Turn on ${paneName(pane)}`;
     btn.addEventListener('click', () => setOff(pane, false));
     box.append(btn);
   }
@@ -437,7 +440,7 @@ function swapPanes() {
     p.index = i;
     p.el.style.order = i;
     if (!p.form.hidden) showSetup(p);
-    else if (!paneState(p).label) p.el.querySelector('.pane-name').textContent = defaultName(i);
+    else p.el.querySelector('.pane-name').textContent = paneName(p);
   });
 }
 
@@ -514,7 +517,6 @@ function applyRemote(next) {
     if (before.input !== after.input || before.off !== after.off) {
       render(pane);
     } else {
-      pane.el.querySelector('.pane-name').textContent = after.label || defaultName(i);
       showExtras(pane);
     }
   });

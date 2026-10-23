@@ -110,19 +110,19 @@ export function shortInput(input) {
 }
 
 // Screen setup <-> URL hash, so a link can be bookmarked or sent to the crew. Per camera
-// (a = left/top or main, b = right/bottom or inset): link, n = camera name, c = car number,
-// d = driver, v = navigator, k = class, r = rotation in degrees, o = 1 when turned off.
-// #a=<link>&an=Bonnet&ac=12&ad=…&av=…&ar=180&b=…&bo=1&t=<title>&layout=pip&corner=tl&view=1
+// (a = left/top or main, b = right/bottom or inset): link, c = car number, d = driver,
+// v = navigator, k = class, r = rotation in degrees, o = 1 when turned off.
+// #a=<link>&ac=646&ad=…&av=…&ak=…&ar=180&b=…&bo=1&t=<title>&layout=pip&corner=tl&view=1
 // `view=1` is a watch link: it only shows the cameras, with nothing to set up or change.
 const KEYS = ['a', 'b'];
-const FIELDS = { label: 'n', car: 'c', driver: 'd', nav: 'v', cls: 'k' };
+const FIELDS = { car: 'c', driver: 'd', nav: 'v', cls: 'k' };
 export const LAYOUTS = ['auto', 'row', 'col', 'pip'];
 // Where the small window goes in picture in picture: bottom right, bottom left, top left, top right.
 export const CORNERS = ['br', 'bl', 'tl', 'tr'];
 export const ROTATIONS = [0, 90, 180, 270];
 
 export function emptyPane() {
-  return { input: '', label: '', car: '', driver: '', nav: '', cls: '', rotate: 0, off: false };
+  return { input: '', car: '', driver: '', nav: '', cls: '', rotate: 0, off: false };
 }
 
 // Fills in anything missing from a saved or linked camera, and drops anything invalid.
@@ -158,7 +158,7 @@ export function decodeState(hash) {
     const inner = decodeState(fromBase64Url(q.get('w')));
     return inner && { ...inner, view: true };
   }
-  if (!KEYS.some((k) => q.has(k) || q.has(`${k}n`))) return null;
+  if (!KEYS.some((k) => q.has(k) || q.has(`${k}c`))) return null;
   const layout = q.get('layout');
   const corner = q.get('corner');
   return {
