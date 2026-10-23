@@ -110,17 +110,19 @@ export function shortInput(input) {
 }
 
 // Screen setup <-> URL hash, so a link can be bookmarked or sent to the crew. Per camera
-// (a = left/top, b = right/bottom): link, n = camera name, c = car number, d = driver,
-// v = navigator, r = rotation in degrees.
-// #a=<link>&an=Bonnet&ac=12&ad=…&av=…&ar=180&b=…&t=<title>&layout=row&view=1
+// (a = left/top or main, b = right/bottom or inset): link, n = camera name, c = car number,
+// d = driver, v = navigator, r = rotation in degrees, o = 1 when turned off.
+// #a=<link>&an=Bonnet&ac=12&ad=…&av=…&ar=180&b=…&bo=1&t=<title>&layout=pip&corner=tl&view=1
 // `view=1` is a watch link: it only shows the cameras, with nothing to set up or change.
 const KEYS = ['a', 'b'];
 const FIELDS = { label: 'n', car: 'c', driver: 'd', nav: 'v' };
-export const LAYOUTS = ['auto', 'row', 'col'];
+export const LAYOUTS = ['auto', 'row', 'col', 'pip'];
+// Where the small window goes in picture in picture: bottom right, bottom left, top left, top right.
+export const CORNERS = ['br', 'bl', 'tl', 'tr'];
 export const ROTATIONS = [0, 90, 180, 270];
 
 export function emptyPane() {
-  return { input: '', label: '', car: '', driver: '', nav: '', rotate: 0 };
+  return { input: '', label: '', car: '', driver: '', nav: '', rotate: 0, off: false };
 }
 
 // Fills in anything missing from a saved or linked camera, and drops anything invalid.
@@ -129,6 +131,7 @@ export function normalizePane(p) {
   for (const key of ['input', ...Object.keys(FIELDS)]) pane[key] = typeof p?.[key] === 'string' ? p[key] : '';
   const r = Number(p?.rotate);
   pane.rotate = ROTATIONS.includes(r) ? r : 0;
+  pane.off = p?.off === true;
   return pane;
 }
 
@@ -139,9 +142,11 @@ export function encodeState(state) {
     if (p.input) q.set(k, state.view ? shortInput(p.input) : p.input);
     for (const [field, suffix] of Object.entries(FIELDS)) if (p[field]) q.set(k + suffix, p[field]);
     if (p.rotate) q.set(`${k}r`, String(p.rotate));
+    if (p.off) q.set(`${k}o`, '1');
   });
   if (state.title) q.set('t', state.title);
   if (state.layout && state.layout !== 'auto') q.set('layout', state.layout);
+  if (state.corner && state.corner !== 'br') q.set('corner', state.corner);
   if (state.view) q.set('view', '1');
   return q.toString();
 }
@@ -150,12 +155,14 @@ export function decodeState(hash) {
   const q = new URLSearchParams(String(hash || '').replace(/^#/, ''));
   if (!KEYS.some((k) => q.has(k) || q.has(`${k}n`))) return null;
   const layout = q.get('layout');
+  const corner = q.get('corner');
   return {
     title: q.get('t') || '',
     layout: LAYOUTS.includes(layout) ? layout : 'auto',
+    corner: CORNERS.includes(corner) ? corner : 'br',
     view: q.get('view') === '1',
     panes: KEYS.map((k) => {
-      const p = { input: q.get(k) || '', rotate: q.get(`${k}r`) };
+      const p = { input: q.get(k) || '', rotate: q.get(`${k}r`), off: q.get(`${k}o`) === '1' };
       for (const [field, suffix] of Object.entries(FIELDS)) p[field] = q.get(k + suffix) || '';
       return normalizePane(p);
     }),

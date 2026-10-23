@@ -1,9 +1,9 @@
-import { parseSource, isBlockedHttp, encodeState, decodeState, watchLink, emptyPane, normalizePane, LAYOUTS, ROTATIONS, KIND_NAMES } from './sources.js';
+import { parseSource, isBlockedHttp, encodeState, decodeState, watchLink, emptyPane, normalizePane, LAYOUTS, CORNERS, ROTATIONS, KIND_NAMES } from './sources.js';
 import { createPlayer } from './players.js';
 
 const $ = (id) => document.getElementById(id);
 const STORE_KEY = 'gopro-split';
-const LAYOUT_NAMES = { auto: 'Auto', row: 'Side by side', col: 'Stacked' };
+const LAYOUT_NAMES = { auto: 'Auto', row: 'Side by side', col: 'Stacked', pip: 'Picture in picture' };
 
 const state = loadState();
 const panes = [];
@@ -17,10 +17,11 @@ function loadState() {
     const saved = JSON.parse(localStorage.getItem(STORE_KEY));
     if (saved?.panes?.length === 2) {
       const layout = LAYOUTS.includes(saved.layout) ? saved.layout : 'auto';
-      return { title: saved.title || '', layout, view: false, panes: saved.panes.map(normalizePane) };
+      const corner = CORNERS.includes(saved.corner) ? saved.corner : 'br';
+      return { title: saved.title || '', layout, corner, view: false, panes: saved.panes.map(normalizePane) };
     }
   } catch {}
-  return { title: '', layout: 'auto', view: false, panes: [emptyPane(), emptyPane()] };
+  return { title: '', layout: 'auto', corner: 'br', view: false, panes: [emptyPane(), emptyPane()] };
 }
 
 function saveState() {
@@ -54,6 +55,12 @@ function buildPane(index) {
   el.querySelector('.pane-change').addEventListener('click', () => showSetup(pane));
   el.querySelector('.setup-cancel').addEventListener('click', () => hideSetup(pane));
   el.querySelector('.pane-mute').addEventListener('click', () => toggleSound(pane));
+  el.querySelector('.pane-off').addEventListener('click', () => setOff(pane, true));
+  el.querySelector('.pane-corner').addEventListener('click', () => {
+    state.corner = CORNERS[(CORNERS.indexOf(state.corner) + 1) % CORNERS.length];
+    applyLayout();
+    saveState();
+  });
   el.querySelector('.pane-rotate').addEventListener('click', () => {
     const p = paneState(pane);
     p.rotate = ROTATIONS[(ROTATIONS.indexOf(p.rotate) + 1) % ROTATIONS.length];
@@ -68,7 +75,8 @@ function buildPane(index) {
     e.preventDefault();
     submitSetup(pane);
   });
-  $('split').append(el);
+  el.style.order = index;
+  $('restore').before(el);
   return pane;
 }
 
@@ -103,6 +111,11 @@ function render(pane) {
   pane.el.querySelector('.pane-name').textContent = label || defaultName(pane.index);
   showExtras(pane);
   stopPlayer(pane);
+  // A camera that's turned off doesn't play at all, so it uses no data.
+  if (paneState(pane).off) {
+    hideSetup(pane);
+    return;
+  }
   let source = null;
   let problem = null;
   try {
@@ -199,6 +212,29 @@ function submitSetup(pane) {
   toast(`${label || defaultName(pane.index)}: ${KIND_NAMES[source.kind]} stream`);
 }
 
+// ---------- Turning a camera off (e.g. its feed dropped) and back on ----------
+
+function setOff(pane, off) {
+  paneState(pane).off = off;
+  render(pane);
+  applyLayout();
+  saveState();
+}
+
+function updateRestore() {
+  const box = $('restore');
+  box.replaceChildren();
+  const off = panes.filter((p) => paneState(p).off);
+  for (const pane of off) {
+    const btn = document.createElement('button');
+    btn.className = 'btn btn-go';
+    btn.textContent = `Turn on ${paneState(pane).label || defaultName(pane.index)}`;
+    btn.addEventListener('click', () => setOff(pane, false));
+    box.append(btn);
+  }
+  box.hidden = !off.length;
+}
+
 // ---------- Sound: one camera at a time, so two engines don't drown each other out ----------
 
 function toggleSound(pane) {
@@ -224,7 +260,18 @@ function updateMuteButton(pane) {
 // ---------- Top bar ----------
 
 function applyLayout() {
-  $('split').dataset.layout = state.layout;
+  const split = $('split');
+  split.dataset.layout = state.layout;
+  split.dataset.corner = state.corner;
+  // With one camera off the other fills the screen; in picture in picture the second
+  // camera showing is the small window.
+  const showing = panes.filter((p) => !paneState(p).off);
+  split.dataset.showing = showing.length;
+  for (const p of panes) {
+    p.el.hidden = paneState(p).off;
+    p.el.classList.toggle('inset', state.layout === 'pip' && showing.length === 2 && p === showing[1]);
+  }
+  updateRestore();
   $('layoutBtn').querySelector('.lbl').textContent = `Layout: ${LAYOUT_NAMES[state.layout]}`;
   $('layoutBtn').setAttribute('aria-label', `Layout: ${LAYOUT_NAMES[state.layout]}`);
 }
@@ -236,15 +283,17 @@ $('layoutBtn').addEventListener('click', () => {
 });
 
 $('swapBtn').addEventListener('click', () => {
-  // Swap the elements rather than restarting the players, so neither feed drops.
+  // Swap the on-screen order rather than moving the elements: moving a YouTube or Twitch
+  // player reloads it, and neither feed should drop.
   state.panes.reverse();
   panes.reverse();
   panes.forEach((p, i) => {
     p.index = i;
-    $('split').append(p.el);
+    p.el.style.order = i;
     if (!p.form.hidden) showSetup(p);
     else if (!paneState(p).label) p.el.querySelector('.pane-name').textContent = defaultName(i);
   });
+  applyLayout();
   saveState();
 });
 

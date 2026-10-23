@@ -82,6 +82,50 @@ code { background: var(--card); padding: 1px 5px; border-radius: 4px; font-size:
 @media (orientation: portrait) {
   .split[data-layout="auto"] { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
 }
+.split { position: relative; }
+/* One camera (the other's off) or picture in picture: one camera fills the screen. */
+.split.split[data-showing="1"], .split.split[data-showing="0"], .split.split[data-layout="pip"] { grid-template-columns: 1fr; grid-template-rows: 1fr; }
+.split[data-layout="pip"] > .pane { grid-area: 1 / 1; }
+
+/* Picture in picture: the small window, in whichever corner it's been moved to. */
+.pane.inset {
+  z-index: 2;
+  width: clamp(160px, 32%, 520px);
+  height: auto;
+  aspect-ratio: 16 / 9;
+  margin: 12px;
+  align-self: end;
+  justify-self: end;
+  border: 2px solid rgba(255, 255, 255, .7);
+  border-radius: 10px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, .7);
+}
+.split[data-corner="bl"] .pane.inset { justify-self: start; }
+.split[data-corner="tl"] .pane.inset { align-self: start; justify-self: start; margin-top: 56px; }
+.split[data-corner="tr"] .pane.inset { align-self: start; margin-top: 56px; }
+/* Keep the small window's bar to the essentials, and its caption to the car number. */
+.pane.inset .pane-bar { padding: 4px 6px; gap: 4px; }
+.pane.inset .pane-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; font-size: 13px; }
+.pane.inset .pane-bar .btn { flex: none; min-height: 28px; padding: 3px 6px; }
+.pane.inset .pane-status, .pane.inset .pane-mute, .pane.inset .pane-rotate, .pane.inset .pane-change, .pane.inset .crew { display: none; }
+.pane.inset .car-card { left: 6px; bottom: 6px; font-size: 10px; }
+.pane-corner { display: none; }
+.pane.inset .pane-corner { display: inline-flex; }
+
+/* Buttons to turn cameras back on. */
+.restore {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 3;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  max-width: calc(100% - 24px);
+}
+.restore .btn { box-shadow: 0 4px 14px rgba(0, 0, 0, .6); }
+.split[data-showing="0"] .restore { inset: 0; max-width: none; align-content: center; justify-content: center; }
 
 .pane { position: relative; min-width: 0; min-height: 0; overflow: hidden; background: #000; container-type: size; }
 .stage { position: absolute; inset: 0; }

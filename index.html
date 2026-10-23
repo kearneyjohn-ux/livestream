@@ -29,6 +29,7 @@
 
   <main class="split" id="split" data-layout="auto">
     <!-- Filled from the template below, one per camera -->
+    <div class="restore" id="restore" hidden></div>
   </main>
 
   <template id="paneTpl">
@@ -49,6 +50,8 @@
         <button class="btn btn-sm pane-mute" hidden>Sound off</button>
         <button class="btn btn-sm pane-rotate" title="Rotate the picture a quarter turn" aria-label="Rotate picture"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 4v5h-5"/></svg></button>
         <button class="btn btn-sm pane-change">Change</button>
+        <button class="btn btn-sm pane-corner" title="Move this window to another corner" aria-label="Move to another corner"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M13 13h5v4h-5z"/></svg></button>
+        <button class="btn btn-sm pane-off" title="Turn this camera off, e.g. when its feed drops. The other fills the screen." aria-label="Turn camera off"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v8"/><path d="M6.3 6.8a8 8 0 1 0 11.4 0"/></svg></button>
       </div>
       <form class="setup" hidden>
         <h2 class="setup-title"></h2>
@@ -127,6 +130,8 @@
       <li>A camera that drops out is reconnected automatically. The coloured dot shows each feed: green live, amber waiting, red problem.</li>
       <li><b>Share</b> makes a watch link to text or email. It opens straight to both cameras, with nothing to set up.</li>
       <li>Sound starts off. Tap <b>Sound on</b> on one camera; YouTube and Twitch have their own speaker button.</li>
+      <li>A feed dropped out? Tap the <b>power</b> button on it to turn that camera off: the other fills the screen and the dropped one stops using data. <b>Turn on</b> at the bottom brings it back.</li>
+      <li><b>Layout → Picture in picture</b> shows one camera full screen with the other in a small window. <b>Swap</b> changes which is which; the corner button on the small window moves it.</li>
       <li>Camera mounted upside down? Tap the <b>rotate</b> button on that camera, or pick <b>Upside down</b> under <b>Change</b>. Rotation, car number and crew names go into the watch link, so set them before you send it.</li>
     </ul>
   </dialog>

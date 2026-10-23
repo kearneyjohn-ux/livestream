@@ -77,11 +77,12 @@ test('http streams are blocked on an https page, except from this computer', () 
 test('Screen setup round-trips through the share link', () => {
   const state = {
     title: 'KDR 2026 · Truck 12',
-    layout: 'col',
+    layout: 'pip',
+    corner: 'tl',
     view: false,
     panes: [
-      { input: 'https://youtube.com/watch?v=dQw4w9WgXcQ&t=1', label: 'Bonnet & roof', car: '12', driver: 'John Kearney', nav: 'Seán Ó Briain', rotate: 180 },
-      { input: 'https://cam.example.com:8889/truck2', label: '', car: '', driver: '', nav: '', rotate: 0 },
+      { input: 'https://youtube.com/watch?v=dQw4w9WgXcQ&t=1', label: 'Bonnet & roof', car: '12', driver: 'John Kearney', nav: 'Seán Ó Briain', rotate: 180, off: false },
+      { input: 'https://cam.example.com:8889/truck2', label: '', car: '', driver: '', nav: '', rotate: 0, off: true },
     ],
   };
   const hash = encodeState(state);
@@ -92,12 +93,15 @@ test('Screen setup round-trips through the share link', () => {
   assert.equal(decodeState('#a=x&layout=bogus').layout, 'auto');
   assert.equal(decodeState('#a=x&ar=45').panes[0].rotate, 0);
   assert.equal(decodeState('#a=x&br=270').panes[1].rotate, 270);
+  assert.equal(decodeState('#a=x&corner=middle').corner, 'br');
+  assert.equal(decodeState('#a=x&ao=yes').panes[0].off, false);
 });
 
 test('Watch links are short, titled and open in watch-only mode', () => {
   const state = {
     title: 'KDR 2026',
     layout: 'auto',
+    corner: 'br',
     view: false,
     panes: [
       normalizePane({ input: 'https://www.youtube.com/live/dQw4w9WgXcQ?si=Xy12abcdEFGH', label: 'Bonnet' }),
@@ -117,7 +121,8 @@ test('Watch links are short, titled and open in watch-only mode', () => {
 });
 
 test('Saved cameras from older versions get the new fields filled in', () => {
-  assert.deepEqual(normalizePane({ input: 'x', label: 'Roof' }), { input: 'x', label: 'Roof', car: '', driver: '', nav: '', rotate: 0 });
+  assert.deepEqual(normalizePane({ input: 'x', label: 'Roof' }), { input: 'x', label: 'Roof', car: '', driver: '', nav: '', rotate: 0, off: false });
+  assert.equal(normalizePane({ off: 'true' }).off, false);
   assert.deepEqual(normalizePane(null).rotate, 0);
   assert.equal(normalizePane({ rotate: '90' }).rotate, 90);
   assert.equal(normalizePane({ car: 12 }).car, '');
