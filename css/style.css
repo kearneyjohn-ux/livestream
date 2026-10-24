@@ -228,26 +228,6 @@ code { background: var(--card); padding: 1px 5px; border-radius: 4px; font-size:
 }
 .pane-bar > * { pointer-events: auto; }
 .pane-name { white-space: nowrap; text-shadow: 0 1px 3px #000; }
-/* The car dropdown reads like the feed's name, with a ▾ to show it can be changed. */
-.pane-car {
-  min-width: 0;
-  max-width: 11em;
-  padding: 3px 22px 3px 8px;
-  border: 1px solid rgba(255, 255, 255, .25);
-  border-radius: 8px;
-  background: rgba(20, 24, 28, .75) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23eef1f4' stroke-width='1.6'/%3E%3C/svg%3E") no-repeat right 7px center / 10px 6px;
-  color: var(--text);
-  font-weight: 700;
-  font-size: 14px;
-  text-overflow: ellipsis;
-  -webkit-appearance: none;
-  appearance: none;
-  cursor: pointer;
-}
-/* Setting up: the dropdown stands in for the name. Watching a link, or in the small
-   picture-in-picture window, just the name. */
-body:not(.viewing) .pane:not(.inset) .pane-name { display: none; }
-body.viewing .pane-car, .pane.inset .pane-car { display: none; }
 .pane-status { color: #dfe5ea; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; text-shadow: 0 1px 3px #000; }
 .spacer { flex: 1; }
 .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; background: var(--muted); box-shadow: 0 0 0 2px rgba(0, 0, 0, .5); }

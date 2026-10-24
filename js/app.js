@@ -102,7 +102,6 @@ function buildPane(index) {
   });
   el.querySelector('.cars-link').addEventListener('click', () => openCars());
   el.querySelector('.replays-link').addEventListener('click', () => openReplays(pane));
-  el.querySelector('.pane-car').addEventListener('change', (e) => pickCar(pane, e.target.value));
   el.querySelector('.pane-live').addEventListener('click', () => backToLive(pane));
   // Picking a car fills in its stream link, unless a different link has been typed in.
   pane.form.elements.car.addEventListener('change', () => {
@@ -142,7 +141,6 @@ function paneState(pane) {
 function showExtras(pane) {
   const { car, driver, nav, cls, rotate } = paneState(pane);
   pane.el.querySelector('.pane-name').textContent = paneName(pane);
-  fillQuickCar(pane);
   const card = pane.el.querySelector('.car-card');
   card.hidden = !(car || driver || nav || cls);
   const num = card.querySelector('.car-num');
@@ -280,58 +278,6 @@ function fillCarSelect(pane, selected) {
   select.value = selected;
 }
 
-// The car dropdown on each feed: picking a car switches the feed to that car's stream and
-// caption in one go, without opening Change.
-const CARS_OPTION = '__cars';
-
-function fillQuickCar(pane) {
-  const select = pane.el.querySelector('.pane-car');
-  const p = paneState(pane);
-  const options = [new Option(defaultName(pane.index), '')];
-  for (const c of cars) options.push(new Option(`Car ${c.car}${c.driver ? ` · ${c.driver}` : ''}`, c.car));
-  if (p.car && !findCar(cars, p.car)) options.push(new Option(`Car ${p.car}`, KEEP_CAR));
-  options.push(new Option('Add or edit cars…', CARS_OPTION));
-  select.replaceChildren(...options);
-  select.value = findCar(cars, p.car)?.car ?? (p.car ? KEEP_CAR : '');
-}
-
-function pickCar(pane, value) {
-  if (value === CARS_OPTION) {
-    fillQuickCar(pane);
-    openCars();
-    return;
-  }
-  if (value === KEEP_CAR) return;
-  const p = paneState(pane);
-  const car = findCar(cars, value);
-  // A car without a stream link can't be shown yet: ask for its link, then switch to it.
-  if (car && !car.stream) {
-    fillQuickCar(pane);
-    openCars();
-    editCar(car);
-    pendingPick = { pane, car: car.car };
-    $('carForm').elements.stream.focus();
-    toast(`Add car ${car.car}'s stream link, then Save`);
-    return;
-  }
-  Object.assign(p, { car: car?.car || '', driver: car?.driver || '', nav: car?.nav || '', cls: car?.cls || '' });
-  if (car?.stream && car.stream !== p.input) {
-    p.input = car.stream;
-    p.off = false;
-    render(pane);
-    applyLayout();
-  } else {
-    showExtras(pane);
-    updateLiveButton(pane);
-  }
-  saveState();
-  toast(`${paneName(pane)} on this camera`);
-}
-
-// Set when a feed is waiting for a car's stream link to be added.
-let pendingPick = null;
-$('carsDlg').addEventListener('close', () => (pendingPick = null));
-
 let editingCar = '';
 
 function openCars() {
@@ -421,12 +367,6 @@ $('carForm').addEventListener('submit', (e) => {
   const verb = editingCar ? 'Saved' : 'Added';
   carsChanged(editingCar, saved, before?.stream || '');
   toast(`${verb} car ${saved.car}`);
-  // The feed that asked for this car's link can show it now.
-  const pick = pendingPick;
-  if (pick && saved.stream && before?.car === pick.car) {
-    $('carsDlg').close();
-    pickCar(pick.pane, saved.car);
-  }
 });
 
 // After a car is edited (or removed, `car` null): save the list, update any camera showing it,
