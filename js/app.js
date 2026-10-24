@@ -6,6 +6,9 @@ import { getClientId, setClientId, getToken, forgetToken, startSignIn, finishSig
 
 const $ = (id) => document.getElementById(id);
 const STORE_KEY = 'gopro-split';
+
+// The maker's credit along the bottom. Fill in a link and a few words to make it a proper ad.
+const PROMO = { url: '', tagline: '' };
 const LAYOUT_NAMES = { auto: 'Auto', row: 'Side by side', col: 'Stacked', pip: 'Picture in picture' };
 
 // localStorage can be missing or throw (private browsing, blocked storage).
@@ -846,7 +849,7 @@ $('shareSend').addEventListener('click', async () => {
   const url = updateShare();
   if (!url) return;
   try {
-    await navigator.share({ title: state.title || 'Live cameras', text: `Watch ${state.title || 'the cameras'} live:`, url });
+    await navigator.share({ title: state.title || 'Live cameras', text: `Watch ${state.title || 'the cameras'} live (cameras by Kearney-tech):`, url });
   } catch {}
 });
 
@@ -917,6 +920,9 @@ function toast(msg, ms = 3000) {
 }
 
 // ---------- Start ----------
+
+if (PROMO.url) $('promoLink').href = PROMO.url;
+$('promoTag').textContent = PROMO.tagline;
 
 panes.push(buildPane(0), buildPane(1));
 applyMode();

@@ -12,6 +12,7 @@
   --wait: #f5b942;
   --bad: #ff5a4f;
   --topbar: 52px;
+  --promo: 28px;
   color-scheme: dark;
 }
 
@@ -74,7 +75,7 @@ code { background: var(--card); padding: 1px 5px; border-radius: 4px; font-size:
 /* ---------- The split ---------- */
 
 .split {
-  height: calc(100% - var(--topbar) - env(safe-area-inset-top));
+  height: calc(100% - var(--topbar) - env(safe-area-inset-top) - var(--promo) - env(safe-area-inset-bottom));
   display: grid;
   gap: 3px;
   grid-template-columns: 1fr 1fr;
@@ -242,6 +243,27 @@ code { background: var(--card); padding: 1px 5px; border-radius: 4px; font-size:
   body.idle .pane:not(.editing):not([data-level="wait"]):not([data-level="bad"]) .pane-bar { opacity: 0; }
   body.idle .pane:not(.editing):not([data-level="wait"]):not([data-level="bad"]) .pane-bar > * { pointer-events: none; }
 }
+
+/* ---------- Kearney-tech credit ---------- */
+
+.promo {
+  height: calc(var(--promo) + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--panel);
+  border-top: 1px solid var(--line);
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.promo-link { color: var(--muted); text-decoration: none; }
+.promo-link b { color: var(--text); letter-spacing: .02em; }
+.promo-link[href] b { color: var(--lime); }
+.promo-link[href]:hover b { text-decoration: underline; }
+.promo-tag:empty { display: none; }
+.promo-tag::before { content: "· "; }
 
 /* ---------- Choosing a stream ---------- */
 

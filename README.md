@@ -41,6 +41,8 @@ Other controls:
 - **Full screen** (where the browser supports it).
 - Sound starts muted. **Sound on** plays one camera at a time. YouTube and Twitch use their own speaker button.
 
+A strip along the bottom credits **Kearney-tech** on every screen, including watch links. Its link and tagline are set in `PROMO` at the top of `js/app.js`.
+
 A dropped feed reconnects by itself. The dot next to each camera is green when live, amber while waiting or reconnecting, and red for a problem. The screen stays on while you're watching.
 
 ## Getting the GoPros streaming over Starlink
