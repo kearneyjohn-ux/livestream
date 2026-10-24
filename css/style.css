@@ -192,6 +192,31 @@ code { background: var(--card); padding: 1px 5px; border-radius: 4px; font-size:
 .crew-row b { overflow: hidden; text-overflow: ellipsis; font-weight: 650; }
 .start-row b { color: var(--lime); }
 .pane.editing .car-card { display: none; }
+/* How many are watching, in the top-left corner of the feed under its name (clear of the
+   car caption at the bottom, which can be wide on a phone). */
+.viewer-badge {
+  position: absolute;
+  left: 10px;
+  top: 46px;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px 4px 8px;
+  border-radius: 999px;
+  background: rgba(11, 13, 16, .8);
+  color: var(--text);
+  font-size: clamp(11px, 2.2cqw, 15px);
+  font-weight: 700;
+  pointer-events: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .4);
+}
+.viewer-badge .eye { width: 8px; height: 8px; border-radius: 50%; background: var(--bad); animation: blink 1.2s infinite alternate; }
+.pane.inset .viewer-badge { left: 6px; top: 34px; font-size: 10px; }
+/* Picture in picture with the small window top left: the main feed's count goes top right. */
+.split[data-layout="pip"][data-showing="2"][data-corner="tl"] .pane:not(.inset) .viewer-badge { left: auto; right: 12px; }
+.pane:has(.stage[data-offline]) .viewer-badge { display: none; }
+
 /* A camera that's offline: the app's own card instead of Twitch's white offline screen. */
 .offline-card {
   position: absolute;

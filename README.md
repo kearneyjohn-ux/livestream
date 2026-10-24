@@ -37,6 +37,7 @@ Other controls:
 - **Layout**: *Auto* puts the cameras side by side in landscape and one above the other in portrait. You can also fix it to *Side by side*, *Stacked* or *Picture in picture* (one camera full screen, the other in a small window; the corner button on the small window moves it round the corners).
 - **Swap**: switches the two cameras round without dropping either feed. In picture in picture it swaps which one is full screen.
 - **Replays**: under **Change**, **Watch a replay** lists the car's past Twitch broadcasts and plays the one you pick in that feed; **● Live** on the feed goes back to the live stream. Listing replays needs a one-off setup: register a free app at dev.twitch.tv/console/apps (OAuth Redirect URL `https://kearneyjohn-ux.github.io/livestream/`, category Website Integration; Twitch asks for two-factor sign-in first), paste its Client ID into the Replays screen and tap **Connect Twitch**. You can also paste any replay link (`twitch.tv/videos/…`) there.
+- **Viewer count**: each live Twitch feed shows how many are watching (Twitch's count, which includes people watching in this app) in its bottom-right corner, updated every minute. It comes from DecAPI (decapi.me), a free public service, so no sign-in is needed.
 - **A YouTube stream whose owner doesn't allow it to be played in other apps** (some news channels) shows a card saying so, rather than YouTube's "video unavailable".
 - **While a camera is offline** its feed shows a Westlime card (logo, car number, and the car's **message while offline** from the car list, e.g. "Starts at 6:46am WA time", or else "Waiting for the camera to go live") instead of Twitch's white offline screen, and switches back to the video by itself when the camera goes live.
 - **Twitch and YouTube feeds start by themselves**, including on phones and tablets, and start again when a camera comes back online. If a browser still holds them back, one tap on **Tap to start the cameras** starts them all. **Sound** works on Twitch feeds too.
@@ -82,6 +83,8 @@ npm test    # unit tests for link parsing, watch links, the car list and live up
 - `js/sources.js`: works out what a pasted link is and how to play it, and builds watch links (no DOM, runs in Node)
 - `js/twitch.js`: Twitch sign-in and listing a channel's replays
 - `js/live.js`: live links: encrypting, signing and sending changes through ntfy.sh, and receiving them (crypto runs in Node for the tests)
+- `js/viewers.js`: viewer counts for Twitch feeds
+- `js/start.js`: start times in Perth and Sydney time
 - `js/roster.js`: the list of cars, with the team's starting cars (no DOM, runs in Node)
 - `js/players.js`: YouTube/Twitch embeds, HLS and WebRTC (WHEP) players with automatic reconnect
 - `js/app.js`: the split screen, setup forms, layout, sound and share link

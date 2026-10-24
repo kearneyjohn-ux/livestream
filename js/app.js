@@ -1,6 +1,7 @@
 import { parseSource, isBlockedHttp, shortInput, encodeState, decodeState, watchLink, watchHash, emptyPane, normalizePane, LAYOUTS, CORNERS, ROTATIONS, KIND_NAMES } from './sources.js?v=dev';
 import { createPlayer } from './players.js?v=dev';
 import { isUpcoming, startLines, toWaInput, fromWaInput } from './start.js?v=dev';
+import { fetchViewerCount, viewerLabel } from './viewers.js?v=dev';
 import { DEFAULT_CARS, loadCars, saveCars, findCar, upsertCar, removeCar, carLabel, crewText } from './roster.js?v=dev';
 import { createChannel, channelParam, parseChannelParam, sealMessage, openMessage, publish, fetchCached, subscribe } from './live.js?v=dev';
 import { getClientId, setClientId, getToken, forgetToken, startSignIn, finishSignIn, fetchReplays, SignInNeeded } from './twitch.js?v=dev';
@@ -151,6 +152,28 @@ function startFor(pane) {
   return start || findCar(DEFAULT_CARS, car)?.start || '';
 }
 
+// ---------- Viewer counts: how many are watching each car's Twitch stream ----------
+
+async function updateViewers() {
+  if (document.visibilityState !== 'visible') return;
+  await Promise.all(panes.map(async (pane) => {
+    const badge = pane.el.querySelector('.viewer-badge');
+    let source = null;
+    try {
+      source = parseSource(paneState(pane).input);
+    } catch {}
+    const channel = source?.kind === 'twitch' && !paneState(pane).off ? source.channel : '';
+    const count = channel ? await fetchViewerCount(channel) : null;
+    badge.hidden = count == null;
+    if (count != null) {
+      badge.querySelector('.viewer-count').textContent = viewerLabel(count);
+      badge.title = `${count} watching car ${paneState(pane).car || ''} on Twitch`.replace('  ', ' ');
+    }
+  }));
+}
+setInterval(updateViewers, 60000);
+document.addEventListener('visibilitychange', updateViewers);
+
 // Start times disappear from the feeds once they pass.
 setInterval(() => {
   for (const pane of panes) {
@@ -227,6 +250,8 @@ function render(pane) {
     return;
   }
   pane.player = createPlayer(source, pane.stage, (text, level) => setStatus(pane, text, level));
+  pane.el.querySelector('.viewer-badge').hidden = true;
+  setTimeout(updateViewers, 1500);
   const mute = pane.el.querySelector('.pane-mute');
   mute.hidden = !pane.player.setMuted;
   updateMuteButton(pane);
@@ -1018,6 +1043,7 @@ panes.forEach(render);
 saveState();
 wake();
 checkForUpdate();
+updateViewers();
 setInterval(checkForUpdate, 5 * 60 * 1000);
 document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && checkForUpdate());
 if (viewerChannel) startViewer();
