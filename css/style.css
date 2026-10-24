@@ -156,6 +156,12 @@ code { background: var(--card); padding: 1px 5px; border-radius: 4px; font-size:
 }
 .pane[data-rotate="90"] .stage > *, .pane[data-rotate="270"] .stage > * { width: 100cqh; height: 100cqw; }
 
+/* A turned feed: cover the player so its own buttons (full screen in particular, which would
+   show the picture unturned) can't be reached. Sound, full screen and the rest are on the
+   app's bar, which sits above this. */
+.turn-shield { position: absolute; inset: 0; display: none; }
+.pane[data-rotate]:not([data-rotate="0"]) .turn-shield { display: block; }
+
 /* Car number and crew, like a TV caption. Sized to the pane so it suits a phone or a TV. */
 .car-card {
   position: absolute;
