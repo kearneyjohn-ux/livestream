@@ -156,6 +156,16 @@ code { background: var(--card); padding: 1px 5px; border-radius: 4px; font-size:
 }
 .pane[data-rotate="90"] .stage > *, .pane[data-rotate="270"] .stage > * { width: 100cqh; height: 100cqw; }
 
+/* iPhone "full screen": one feed fills the whole window. */
+.pane.solo {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+.pane.solo .pane-full { background: var(--accent); border-color: var(--accent); }
+body.solo-open { overscroll-behavior: none; }
+
 /* A turned feed: cover the player so its own buttons (full screen in particular, which would
    show the picture unturned) can't be reached. Sound, full screen and the rest are on the
    app's bar, which sits above this. */

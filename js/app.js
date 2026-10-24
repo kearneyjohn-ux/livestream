@@ -108,11 +108,21 @@ function buildPane(index) {
     saveState();
   });
   el.querySelector('.cars-link').addEventListener('click', () => openCars());
-  // One feed full screen, still the right way up (a player's own full screen isn't).
+  // One feed full screen, still the right way up (a player's own full screen isn't). iPhones
+  // don't let pages go full screen, so there the feed fills the whole window instead.
   const full = el.querySelector('.pane-full');
   const page = document.documentElement;
-  full.hidden = !(page.requestFullscreen || page.webkitRequestFullscreen);
+  const realFullscreen = Boolean(page.requestFullscreen || page.webkitRequestFullscreen);
+  full.hidden = false;
   full.addEventListener('click', () => {
+    if (!realFullscreen) {
+      const on = !el.classList.contains('solo');
+      for (const p of panes) p.el.classList.remove('solo');
+      el.classList.toggle('solo', on);
+      document.body.classList.toggle('solo-open', on);
+      if (on) toast('Turn the phone sideways for a bigger picture. Tap ⛶ to go back.');
+      return;
+    }
     if (document.fullscreenElement || document.webkitFullscreenElement) {
       (document.exitFullscreen || document.webkitExitFullscreen).call(document);
     } else {
