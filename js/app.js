@@ -1,8 +1,8 @@
-import { parseSource, isBlockedHttp, shortInput, encodeState, decodeState, watchLink, watchHash, emptyPane, normalizePane, LAYOUTS, CORNERS, ROTATIONS, KIND_NAMES } from './sources.js';
-import { createPlayer } from './players.js';
-import { DEFAULT_CARS, loadCars, saveCars, findCar, upsertCar, removeCar, carLabel, crewText } from './roster.js';
-import { createChannel, channelParam, parseChannelParam, sealMessage, openMessage, publish, fetchCached, subscribe } from './live.js';
-import { getClientId, setClientId, getToken, forgetToken, startSignIn, finishSignIn, fetchReplays, SignInNeeded } from './twitch.js';
+import { parseSource, isBlockedHttp, shortInput, encodeState, decodeState, watchLink, watchHash, emptyPane, normalizePane, LAYOUTS, CORNERS, ROTATIONS, KIND_NAMES } from './sources.js?v=dev';
+import { createPlayer } from './players.js?v=dev';
+import { DEFAULT_CARS, loadCars, saveCars, findCar, upsertCar, removeCar, carLabel, crewText } from './roster.js?v=dev';
+import { createChannel, channelParam, parseChannelParam, sealMessage, openMessage, publish, fetchCached, subscribe } from './live.js?v=dev';
+import { getClientId, setClientId, getToken, forgetToken, startSignIn, finishSignIn, fetchReplays, SignInNeeded } from './twitch.js?v=dev';
 
 const $ = (id) => document.getElementById(id);
 const STORE_KEY = 'gopro-split';
@@ -943,6 +943,26 @@ function toast(msg, ms = 3000) {
   toastTimer = setTimeout(() => (el.hidden = true), ms);
 }
 
+// ---------- Staying up to date ----------
+
+// The deploy stamps each file with its version; a page left open (e.g. a TV in the pits or a
+// phone on race morning) reloads itself when a newer version is published.
+const APP_VERSION = new URL(import.meta.url).searchParams.get('v') || 'dev';
+
+async function checkForUpdate() {
+  if (APP_VERSION === 'dev') return;
+  try {
+    const res = await fetch(`version.json?t=${Date.now()}`, { cache: 'no-store' });
+    const { version } = await res.json();
+    if (!version || version === APP_VERSION) return;
+    // Only once per version, in case the page keeps getting an old copy.
+    if (session.getItem('gopro-split-reloaded-for') === version) return;
+    session.setItem('gopro-split-reloaded-for', version);
+    saveState();
+    location.reload();
+  } catch {}
+}
+
 // ---------- Start ----------
 
 if (PROMO.url) $('promoLink').href = PROMO.url;
@@ -973,6 +993,9 @@ applyLayout();
 panes.forEach(render);
 saveState();
 wake();
+checkForUpdate();
+setInterval(checkForUpdate, 5 * 60 * 1000);
+document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && checkForUpdate());
 if (viewerChannel) startViewer();
 if (!state.view) setInterval(() => queueLiveSend(0), RESEND_MS);
 // Back from signing in to Twitch: say how it went and carry on browsing replays.

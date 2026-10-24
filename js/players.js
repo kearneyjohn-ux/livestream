@@ -5,7 +5,7 @@
 // Feeds over Starlink drop out now and then (obstructions, satellite handovers), so every
 // player treats a lost or frozen stream as "reconnect in a moment", not as an error.
 
-import { embedUrl } from './sources.js';
+import { embedUrl } from './sources.js?v=dev';
 
 const RETRY_MS = 3000;
 const FROZEN_MS = 12000;

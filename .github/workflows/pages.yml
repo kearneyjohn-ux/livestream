@@ -36,6 +36,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
+      # Browsers keep the app's files for a while; give every file of this version its own
+      # address so a new version is fetched fresh, and publish the version for open pages
+      # to check against.
+      - name: Stamp this version
+        run: |
+          v="${GITHUB_SHA::8}"
+          sed -i "s/?v=dev/?v=$v/g" index.html js/*.js
+          echo "{\"version\":\"$v\"}" > version.json
       - uses: actions/upload-pages-artifact@v3
         with:
           path: .
