@@ -1,5 +1,6 @@
 import { parseSource, isBlockedHttp, shortInput, encodeState, decodeState, watchLink, watchHash, emptyPane, normalizePane, LAYOUTS, CORNERS, ROTATIONS, KIND_NAMES } from './sources.js?v=dev';
 import { createPlayer } from './players.js?v=dev';
+import { isUpcoming, startLines, toWaInput, fromWaInput } from './start.js?v=dev';
 import { DEFAULT_CARS, loadCars, saveCars, findCar, upsertCar, removeCar, carLabel, crewText } from './roster.js?v=dev';
 import { createChannel, channelParam, parseChannelParam, sealMessage, openMessage, publish, fetchCached, subscribe } from './live.js?v=dev';
 import { getClientId, setClientId, getToken, forgetToken, startSignIn, finishSignIn, fetchReplays, SignInNeeded } from './twitch.js?v=dev';
@@ -136,11 +137,27 @@ function showOfflineMessage(pane, problem = null) {
   // Links made before a car had a message (e.g. one saved in a short link) fall back to the
   // team's current message for that car.
   const { note: own, car } = paneState(pane);
-  const note = own || findCar(DEFAULT_CARS, car)?.note || '';
+  const start = startFor(pane);
+  const startText = isUpcoming(start) ? `Starts ${startLines(start).join(' · ')}` : '';
+  const note = own || findCar(DEFAULT_CARS, car)?.note || startText;
   // "A · B" in a message reads as two lines, e.g. a start time in two time zones.
   span.textContent = problem || note.replace(/\s+·\s+/g, '\n') || 'Waiting for the camera to go live';
   span.classList.toggle('note', !problem && Boolean(note));
 }
+
+// The feed's start time; links made before cars had one use the team's.
+function startFor(pane) {
+  const { start, car } = paneState(pane);
+  return start || findCar(DEFAULT_CARS, car)?.start || '';
+}
+
+// Start times disappear from the feeds once they pass.
+setInterval(() => {
+  for (const pane of panes) {
+    showExtras(pane);
+    if (pane.el.dataset.level !== 'bad') showOfflineMessage(pane);
+  }
+}, 15000);
 
 // One camera per car, so a camera is known by its car once one is picked.
 function paneName(pane) {
@@ -159,17 +176,19 @@ function showExtras(pane) {
   pane.el.querySelector('.offline-car').textContent = paneName(pane);
   if (pane.el.dataset.level !== 'bad') showOfflineMessage(pane);
   const card = pane.el.querySelector('.car-card');
-  card.hidden = !(car || driver || nav || cls);
+  card.hidden = !(car || driver || nav || cls || isUpcoming(startFor(pane)));
   const num = card.querySelector('.car-num');
   num.querySelector('.num').textContent = car;
   num.querySelector('.car-class').textContent = cls;
   num.hidden = !(car || cls);
-  for (const [role, name] of [['driver', driver], ['nav', nav]]) {
+  const start = startFor(pane);
+  const startText = isUpcoming(start) ? startLines(start).map((l) => l.replace(/ \(\w+\)$/, '')).join(' · ') : '';
+  for (const [role, name] of [['driver', driver], ['nav', nav], ['start', startText]]) {
     const row = card.querySelector(`[data-role="${role}"]`);
     row.querySelector('b').textContent = name;
     row.hidden = !name;
   }
-  card.querySelector('.crew').hidden = !(driver || nav);
+  card.querySelector('.crew').hidden = !(driver || nav || startText);
   pane.el.dataset.rotate = rotate;
   pane.el.style.setProperty('--rot', `${rotate}deg`);
 }
@@ -277,6 +296,7 @@ function submitSetup(pane) {
     nav: chosen?.nav || '',
     cls: chosen?.cls || '',
     note: chosen?.note || '',
+    start: chosen?.start || '',
     rotate: Number(f.rotate.value),
     off: false,
   });
@@ -354,6 +374,7 @@ function editCar(c) {
   editingCar = c.car;
   const f = $('carForm').elements;
   for (const key of ['car', 'cls', 'driver', 'nav', 'stream', 'note']) f[key].value = c[key];
+  f.start.value = toWaInput(c.start);
   $('carFormTitle').textContent = `Edit car ${c.car}`;
   $('carSave').textContent = 'Save changes';
   $('carCancel').hidden = false;
@@ -375,7 +396,7 @@ $('carCancel').addEventListener('click', resetCarForm);
 $('carForm').addEventListener('submit', (e) => {
   e.preventDefault();
   const f = $('carForm').elements;
-  const input = { car: f.car.value, cls: f.cls.value, driver: f.driver.value, nav: f.nav.value, stream: f.stream.value, note: f.note.value };
+  const input = { car: f.car.value, cls: f.cls.value, driver: f.driver.value, nav: f.nav.value, stream: f.stream.value, note: f.note.value, start: fromWaInput(f.start.value) };
   const result = upsertCar(cars, input, editingCar);
   if (result.error) {
     $('carError').textContent = result.error;
@@ -399,7 +420,7 @@ function carsChanged(oldNumber, car, oldStream = '') {
     const wasPicked = oldNumber && select.value.toLowerCase() === oldNumber.toLowerCase();
     const p = paneState(pane);
     if (oldNumber && p.car.toLowerCase() === oldNumber.toLowerCase()) {
-      Object.assign(p, { car: car?.car || '', driver: car?.driver || '', nav: car?.nav || '', cls: car?.cls || '', note: car?.note || '' });
+      Object.assign(p, { car: car?.car || '', driver: car?.driver || '', nav: car?.nav || '', cls: car?.cls || '', note: car?.note || '', start: car?.start || '' });
       // A feed showing the car's old stream link follows it to the new one.
       if (car?.stream && oldStream && p.input === oldStream && car.stream !== oldStream) {
         p.input = car.stream;
@@ -979,7 +1000,7 @@ function useCarStreams() {
   for (const p of state.panes) {
     const car = findCar(cars, p.car);
     if (!car) continue;
-    Object.assign(p, { driver: car.driver, nav: car.nav, cls: car.cls, note: car.note });
+    Object.assign(p, { driver: car.driver, nav: car.nav, cls: car.cls, note: car.note, start: car.start });
     if (!car.stream || p.input === car.stream) continue;
     let replay = false;
     try {

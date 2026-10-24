@@ -122,19 +122,19 @@ export function shortInput(input) {
 
 // Screen setup <-> URL hash, so a link can be bookmarked or sent to the crew. Per camera
 // (a = left/top or main, b = right/bottom or inset): link, c = car number, d = driver,
-// v = navigator, k = class, m = message while offline, r = rotation in degrees,
+// v = navigator, k = class, m = message while offline, s = start time, r = rotation in degrees,
 // o = 1 when turned off.
 // #a=<link>&ac=646&ad=…&av=…&ak=…&ar=180&b=…&bo=1&t=<title>&layout=pip&corner=tl&view=1
 // `view=1` is a watch link: it only shows the cameras, with nothing to set up or change.
 const KEYS = ['a', 'b'];
-const FIELDS = { car: 'c', driver: 'd', nav: 'v', cls: 'k', note: 'm' };
+const FIELDS = { car: 'c', driver: 'd', nav: 'v', cls: 'k', note: 'm', start: 's' };
 export const LAYOUTS = ['auto', 'row', 'col', 'pip'];
 // Where the small window goes in picture in picture: bottom right, bottom left, top left, top right.
 export const CORNERS = ['br', 'bl', 'tl', 'tr'];
 export const ROTATIONS = [0, 90, 180, 270];
 
 export function emptyPane() {
-  return { input: '', car: '', driver: '', nav: '', cls: '', note: '', rotate: 0, off: false };
+  return { input: '', car: '', driver: '', nav: '', cls: '', note: '', start: '', rotate: 0, off: false };
 }
 
 // Fills in anything missing from a saved or linked camera, and drops anything invalid.

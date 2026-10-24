@@ -53,6 +53,7 @@
         <span class="crew">
           <span class="crew-row" data-role="driver"><small>Driver</small><b></b></span>
           <span class="crew-row" data-role="nav"><small>Navigator</small><b></b></span>
+          <span class="crew-row start-row" data-role="start"><small>Starts</small><b></b></span>
         </span>
       </div>
       <div class="pane-bar">
@@ -141,8 +142,12 @@
         <label class="field">Navigator
           <input name="nav" type="text" maxlength="40" autocomplete="off">
         </label>
+        <label class="field wide">Start time (WA time)
+          <input name="start" type="datetime-local">
+          <small class="muted">Shown on the feed in Perth and Sydney time until it passes.</small>
+        </label>
         <label class="field wide">Message while offline
-          <input name="note" type="text" maxlength="80" autocomplete="off" placeholder="e.g. Starts 6:46 am AWST (Perth) · 9:46 am AEDT (Sydney)">
+          <input name="note" type="text" maxlength="80" autocomplete="off" placeholder="e.g. Delayed: new start time to come">
         </label>
         <label class="field wide">Live stream link
           <input name="stream" type="text" inputmode="url" maxlength="300" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="e.g. twitch.tv/westlimemotorsport467">

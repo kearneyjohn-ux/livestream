@@ -190,6 +190,7 @@ code { background: var(--card); padding: 1px 5px; border-radius: 4px; font-size:
 .crew-row { display: flex; align-items: baseline; gap: .6em; min-width: 0; white-space: nowrap; }
 .crew-row small { flex: none; width: 6.2em; color: var(--lime); font-size: .62em; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
 .crew-row b { overflow: hidden; text-overflow: ellipsis; font-weight: 650; }
+.start-row b { color: var(--lime); }
 .pane.editing .car-card { display: none; }
 /* A camera that's offline: the app's own card instead of Twitch's white offline screen. */
 .offline-card {

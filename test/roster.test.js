@@ -17,13 +17,13 @@ test('A new device starts with the team cars', () => {
 
 test('The list is saved, including an empty one', () => {
   const storage = memoryStorage();
-  saveCars(storage, [{ car: '12', driver: 'A', nav: 'B', cls: 'C', stream: 'twitch.tv/x', note: 'Starts 9am' }]);
-  assert.deepEqual(loadCars(storage), [{ car: '12', driver: 'A', nav: 'B', cls: 'C', stream: 'twitch.tv/x', note: 'Starts 9am' }]);
+  saveCars(storage, [{ car: '12', driver: 'A', nav: 'B', cls: 'C', stream: 'twitch.tv/x', note: 'Delayed', start: '2026-10-25T09:00:00+08:00' }]);
+  assert.deepEqual(loadCars(storage), [{ car: '12', driver: 'A', nav: 'B', cls: 'C', stream: 'twitch.tv/x', note: 'Delayed', start: '2026-10-25T09:00:00+08:00' }]);
   saveCars(storage, []);
   assert.deepEqual(loadCars(storage), []);
   assert.deepEqual(loadCars(memoryStorage({ [STORE_KEY]: 'not json' })), DEFAULT_CARS);
   assert.deepEqual(loadCars(memoryStorage({ [STORE_KEY]: '[{"car":" 7 ","driver":3},{"driver":"no number"}]' })), [
-    { car: '7', driver: '', nav: '', cls: '', stream: '', note: '' },
+    { car: '7', driver: '', nav: '', cls: '', stream: '', note: '', start: '' },
   ]);
 });
 
@@ -61,45 +61,31 @@ test("Cars saved before stream links get the team's links, but a removed link st
   assert.equal(findCar(cars, '467').stream, 'twitch.tv/westlimemotorsport467');
   assert.equal(findCar(cars, '101').stream, '');
   assert.equal(findCar(cars, '479').stream, '', 'an emptied link is not filled back in');
-  assert.equal(findCar(cars, '479').note, 'Starts 6:46 am AWST (Perth) · 9:46 am AEDT (Sydney)', "the team's message is picked up");
-  assert.equal(findCar(cars, '467').note, 'Starts 7:03 am AWST (Perth) · 10:03 am AEDT (Sydney)');
+  assert.equal(findCar(cars, '479').start, '2026-10-25T06:46:00+08:00', "the team's start time is picked up");
+  assert.equal(findCar(cars, '467').start, '2026-10-25T07:03:00+08:00');
 });
 
-test('A device showing an earlier team message gets the current one, but its own messages stay', () => {
+test('Start times written as messages give way to real start times; other messages stay', () => {
   const cars = loadCars(memoryStorage({
+    'gopro-split-cars-team': '3',
     [STORE_KEY]: JSON.stringify([
-      { car: '479', driver: 'Nick Commins', stream: 'twitch.tv/westlimemotorsport479', note: 'Starts at 6:46am WA time' },
-      { car: '467', driver: 'Andrew Commins', stream: 'twitch.tv/westlimemotorsport467', note: 'Back after lunch' },
+      { car: '467', stream: 'twitch.tv/westlimemotorsport467', note: 'Starts 7:03 am AWST (Perth) · 10:03 am AEDT (Sydney)' },
+      { car: '479', stream: 'twitch.tv/westlimemotorsport479', note: 'Starts at 6:46am WA time' },
+      { car: '646', note: 'Back after lunch' },
     ]),
   }));
-  assert.equal(findCar(cars, '479').note, 'Starts 6:46 am AWST (Perth) · 9:46 am AEDT (Sydney)');
-  assert.equal(findCar(cars, '467').note, 'Back after lunch');
-});
-
-test("New team start times reach a device once, even over an empty message, but a later clear sticks", () => {
-  const storage = memoryStorage({
-    [STORE_KEY]: JSON.stringify([
-      { car: '467', driver: 'Andrew Commins', stream: 'twitch.tv/westlimemotorsport467', note: '' },
-      { car: '479', driver: 'Nick Commins', stream: 'twitch.tv/westlimemotorsport479', note: 'Starts at 6:46am WA time' },
-    ]),
-  });
-  let cars = loadCars(storage);
-  assert.equal(findCar(cars, '467').note, 'Starts 7:03 am AWST (Perth) · 10:03 am AEDT (Sydney)');
-  assert.equal(findCar(cars, '479').note, 'Starts 6:46 am AWST (Perth) · 9:46 am AEDT (Sydney)');
-  // Cleared on the device afterwards: stays cleared.
-  saveCars(storage, cars.map((c) => (c.car === '467' ? { ...c, note: '' } : c)));
-  cars = loadCars(storage);
   assert.equal(findCar(cars, '467').note, '');
+  assert.equal(findCar(cars, '467').start, '2026-10-25T07:03:00+08:00');
+  assert.equal(findCar(cars, '479').note, '');
+  assert.equal(findCar(cars, '479').start, '2026-10-25T06:46:00+08:00');
+  assert.equal(findCar(cars, '646').note, 'Back after lunch');
 });
 
-test('A device showing the earlier WA/Sydney wording gets the AWST/AEDT one', () => {
-  const cars = loadCars(memoryStorage({
-    'gopro-split-cars-team': '2',
-    [STORE_KEY]: JSON.stringify([
-      { car: '467', stream: 'twitch.tv/westlimemotorsport467', note: 'Starts at 7:03am WA time · 10:03am Sydney time' },
-      { car: '479', stream: 'twitch.tv/westlimemotorsport479', note: 'Starts at 6:46am WA time · 9:46am Sydney time' },
-    ]),
-  }));
-  assert.equal(findCar(cars, '467').note, 'Starts 7:03 am AWST (Perth) · 10:03 am AEDT (Sydney)');
-  assert.equal(findCar(cars, '479').note, 'Starts 6:46 am AWST (Perth) · 9:46 am AEDT (Sydney)');
+test('A start time cleared on the device stays cleared', () => {
+  const storage = memoryStorage({ [STORE_KEY]: JSON.stringify([{ car: '467', stream: 'x' }]) });
+  let cars = loadCars(storage);
+  assert.equal(findCar(cars, '467').start, '2026-10-25T07:03:00+08:00');
+  saveCars(storage, cars.map((c) => ({ ...c, start: '' })));
+  cars = loadCars(storage);
+  assert.equal(findCar(cars, '467').start, '');
 });
