@@ -1,6 +1,6 @@
 import { parseSource, isBlockedHttp, shortInput, encodeState, decodeState, watchLink, watchHash, emptyPane, normalizePane, LAYOUTS, CORNERS, ROTATIONS, KIND_NAMES } from './sources.js';
 import { createPlayer } from './players.js';
-import { loadCars, saveCars, findCar, upsertCar, removeCar, carLabel, crewText } from './roster.js';
+import { DEFAULT_CARS, loadCars, saveCars, findCar, upsertCar, removeCar, carLabel, crewText } from './roster.js';
 import { createChannel, channelParam, parseChannelParam, sealMessage, openMessage, publish, fetchCached, subscribe } from './live.js';
 import { getClientId, setClientId, getToken, forgetToken, startSignIn, finishSignIn, fetchReplays, SignInNeeded } from './twitch.js';
 
@@ -52,7 +52,10 @@ function loadState() {
       return { title: saved.title || '', layout, corner, view: false, panes: saved.panes.map(normalizePane) };
     }
   } catch {}
-  return { title: '', layout: 'auto', corner: 'br', view: false, panes: [emptyPane(), emptyPane()] };
+  // A new device starts on the team's two streaming cars.
+  const start = DEFAULT_CARS.filter((c) => c.stream).slice(0, 2);
+  const panes = [0, 1].map((i) => (start[i] ? normalizePane({ input: start[i].stream, ...start[i] }) : emptyPane()));
+  return { title: '', layout: 'auto', corner: 'br', view: false, panes };
 }
 
 function saveState() {
