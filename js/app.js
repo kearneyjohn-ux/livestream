@@ -104,9 +104,21 @@ function buildPane(index) {
     p.rotate = ROTATIONS[(ROTATIONS.indexOf(p.rotate) + 1) % ROTATIONS.length];
     rememberRotation(p);
     showExtras(pane);
+    refreshTurn(pane);
     saveState();
   });
   el.querySelector('.cars-link').addEventListener('click', () => openCars());
+  // One feed full screen, still the right way up (a player's own full screen isn't).
+  const full = el.querySelector('.pane-full');
+  const page = document.documentElement;
+  full.hidden = !(page.requestFullscreen || page.webkitRequestFullscreen);
+  full.addEventListener('click', () => {
+    if (document.fullscreenElement || document.webkitFullscreenElement) {
+      (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+    } else {
+      (el.requestFullscreen || el.webkitRequestFullscreen).call(el);
+    }
+  });
   el.querySelector('.replays-link').addEventListener('click', () => openReplays(pane));
   el.querySelector('.pane-live').addEventListener('click', () => backToLive(pane));
   // The feeds come from the cars: picking a car puts in its stream link.
@@ -219,6 +231,12 @@ function showExtras(pane) {
   pane.el.style.setProperty('--rot', `${turn}deg`);
 }
 
+// The player's own full-screen button is off for a turned feed, so a feed turned to or from
+// upright gets a fresh player.
+function refreshTurn(pane) {
+  if (pane.player && pane.turned !== (rotationFor(pane) !== 0)) render(pane);
+}
+
 // A car's camera is mounted the same way whatever screen shows it, so turning a feed is
 // remembered for the car. Links made before cars had a rotation (or that weren't updated) use
 // the team's rotation for the car.
@@ -267,7 +285,8 @@ function render(pane) {
     setStatus(pane, 'This link is http://, which an https page can\'t play. Use the server\'s https address.', 'bad');
     return;
   }
-  pane.player = createPlayer(source, pane.stage, (text, level) => setStatus(pane, text, level));
+  pane.turned = rotationFor(pane) !== 0;
+  pane.player = createPlayer(source, pane.stage, (text, level) => setStatus(pane, text, level), { fullscreen: !pane.turned });
   pane.el.querySelector('.viewer-badge').hidden = true;
   setTimeout(updateViewers, 1500);
   const mute = pane.el.querySelector('.pane-mute');
@@ -821,6 +840,7 @@ function applyRemote(next) {
       render(pane);
     } else {
       showExtras(pane);
+      refreshTurn(pane);
     }
   });
   applyMode();
@@ -954,6 +974,7 @@ $('shareUrl').addEventListener('focus', () => $('shareUrl').select());
 const root = document.documentElement;
 const canFullscreen = root.requestFullscreen || root.webkitRequestFullscreen;
 $('fullBtn').hidden = !canFullscreen;
+
 $('fullBtn').addEventListener('click', () => {
   if (document.fullscreenElement || document.webkitFullscreenElement) {
     (document.exitFullscreen || document.webkitExitFullscreen).call(document);

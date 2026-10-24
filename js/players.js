@@ -10,8 +10,11 @@ import { embedUrl } from './sources.js?v=dev';
 const RETRY_MS = 3000;
 const FROZEN_MS = 12000;
 
-export function createPlayer(source, stage, onStatus) {
-  if (source.kind === 'twitch') return twitchPlayer(source, stage, onStatus);
+// options.fullscreen: false switches off a player's own full-screen button, for a feed the
+// app has turned round: a player's own full screen shows the picture the way the camera sends
+// it, i.e. upside down for a camera mounted that way.
+export function createPlayer(source, stage, onStatus, options = {}) {
+  if (source.kind === 'twitch') return twitchPlayer(source, stage, onStatus, options);
   if (source.kind === 'youtube') return youtubePlayer(source, stage, onStatus);
   if (source.kind === 'hls') return hlsPlayer(source, stage, onStatus);
   return webrtcPlayer(source, stage, onStatus);
@@ -212,7 +215,7 @@ function loadTwitchApi() {
   return twitchApi;
 }
 
-function twitchPlayer(source, stage, onStatus) {
+function twitchPlayer(source, stage, onStatus, options = {}) {
   const live = !source.video;
   const box = document.createElement('div');
   box.className = 'twitch-box';
@@ -245,6 +248,7 @@ function twitchPlayer(source, stage, onStatus) {
         width: '100%',
         height: '100%',
         parent: [location.hostname || 'localhost'],
+        allowfullscreen: options.fullscreen !== false,
         autoplay: true,
         muted: true,
         ...(live ? { channel: source.channel } : { video: `v${source.video}` }),
