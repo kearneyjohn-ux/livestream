@@ -7,16 +7,20 @@ export const STORE_KEY = 'gopro-split-cars';
 // `note` is shown on the car's feed while its camera isn't live, e.g. a start time.
 export const DEFAULT_CARS = [
   { car: '646', driver: 'Sam Commins', nav: 'Baxter Cook', cls: 'SXS Pro', stream: '', note: '' },
-  { car: '467', driver: 'Andrew Commins', nav: 'Anthony Cook', cls: 'Extreme 2WD', stream: 'twitch.tv/westlimemotorsport467', note: 'Starts at 7:03am WA time · 10:03am Sydney time' },
-  { car: '479', driver: 'Nick Commins', nav: 'Lachlan Bennie', cls: 'Extreme 2WD', stream: 'twitch.tv/westlimemotorsport479', note: 'Starts at 6:46am WA time · 9:46am Sydney time' },
+  { car: '467', driver: 'Andrew Commins', nav: 'Anthony Cook', cls: 'Extreme 2WD', stream: 'twitch.tv/westlimemotorsport467', note: 'Starts 7:03 am AWST (Perth) · 10:03 am AEDT (Sydney)' },
+  { car: '479', driver: 'Nick Commins', nav: 'Lachlan Bennie', cls: 'Extreme 2WD', stream: 'twitch.tv/westlimemotorsport479', note: 'Starts 6:46 am AWST (Perth) · 9:46 am AEDT (Sydney)' },
 ];
 
 // Bumped when the team's starting details change (e.g. new start times), so each device
 // picks the change up once, while anything edited on the device afterwards is kept.
-const TEAM_VERSION = 2;
+const TEAM_VERSION = 3;
 const VERSION_KEY = 'gopro-split-cars-team';
 // Earlier versions of the team's messages, replaced whenever they're found.
-const OLD_TEAM_NOTES = ['Starts at 6:46am WA time'];
+const OLD_TEAM_NOTES = [
+  'Starts at 6:46am WA time',
+  'Starts at 6:46am WA time · 9:46am Sydney time',
+  'Starts at 7:03am WA time · 10:03am Sydney time',
+];
 
 export function normalizeCar(c) {
   const text = (v, max) => (typeof v === 'string' ? v.trim().slice(0, max) : '');

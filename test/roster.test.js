@@ -61,8 +61,8 @@ test("Cars saved before stream links get the team's links, but a removed link st
   assert.equal(findCar(cars, '467').stream, 'twitch.tv/westlimemotorsport467');
   assert.equal(findCar(cars, '101').stream, '');
   assert.equal(findCar(cars, '479').stream, '', 'an emptied link is not filled back in');
-  assert.equal(findCar(cars, '479').note, 'Starts at 6:46am WA time · 9:46am Sydney time', "the team's message is picked up");
-  assert.equal(findCar(cars, '467').note, 'Starts at 7:03am WA time · 10:03am Sydney time');
+  assert.equal(findCar(cars, '479').note, 'Starts 6:46 am AWST (Perth) · 9:46 am AEDT (Sydney)', "the team's message is picked up");
+  assert.equal(findCar(cars, '467').note, 'Starts 7:03 am AWST (Perth) · 10:03 am AEDT (Sydney)');
 });
 
 test('A device showing an earlier team message gets the current one, but its own messages stay', () => {
@@ -72,7 +72,7 @@ test('A device showing an earlier team message gets the current one, but its own
       { car: '467', driver: 'Andrew Commins', stream: 'twitch.tv/westlimemotorsport467', note: 'Back after lunch' },
     ]),
   }));
-  assert.equal(findCar(cars, '479').note, 'Starts at 6:46am WA time · 9:46am Sydney time');
+  assert.equal(findCar(cars, '479').note, 'Starts 6:46 am AWST (Perth) · 9:46 am AEDT (Sydney)');
   assert.equal(findCar(cars, '467').note, 'Back after lunch');
 });
 
@@ -84,10 +84,22 @@ test("New team start times reach a device once, even over an empty message, but 
     ]),
   });
   let cars = loadCars(storage);
-  assert.equal(findCar(cars, '467').note, 'Starts at 7:03am WA time · 10:03am Sydney time');
-  assert.equal(findCar(cars, '479').note, 'Starts at 6:46am WA time · 9:46am Sydney time');
+  assert.equal(findCar(cars, '467').note, 'Starts 7:03 am AWST (Perth) · 10:03 am AEDT (Sydney)');
+  assert.equal(findCar(cars, '479').note, 'Starts 6:46 am AWST (Perth) · 9:46 am AEDT (Sydney)');
   // Cleared on the device afterwards: stays cleared.
   saveCars(storage, cars.map((c) => (c.car === '467' ? { ...c, note: '' } : c)));
   cars = loadCars(storage);
   assert.equal(findCar(cars, '467').note, '');
+});
+
+test('A device showing the earlier WA/Sydney wording gets the AWST/AEDT one', () => {
+  const cars = loadCars(memoryStorage({
+    'gopro-split-cars-team': '2',
+    [STORE_KEY]: JSON.stringify([
+      { car: '467', stream: 'twitch.tv/westlimemotorsport467', note: 'Starts at 7:03am WA time · 10:03am Sydney time' },
+      { car: '479', stream: 'twitch.tv/westlimemotorsport479', note: 'Starts at 6:46am WA time · 9:46am Sydney time' },
+    ]),
+  }));
+  assert.equal(findCar(cars, '467').note, 'Starts 7:03 am AWST (Perth) · 10:03 am AEDT (Sydney)');
+  assert.equal(findCar(cars, '479').note, 'Starts 6:46 am AWST (Perth) · 9:46 am AEDT (Sydney)');
 });
