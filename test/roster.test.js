@@ -17,13 +17,13 @@ test('A new device starts with the team cars', () => {
 
 test('The list is saved, including an empty one', () => {
   const storage = memoryStorage();
-  saveCars(storage, [{ car: '12', driver: 'A', nav: 'B', cls: 'C', stream: 'twitch.tv/x', note: 'Delayed', start: '2026-10-25T09:00:00+08:00' }]);
-  assert.deepEqual(loadCars(storage), [{ car: '12', driver: 'A', nav: 'B', cls: 'C', stream: 'twitch.tv/x', note: 'Delayed', start: '2026-10-25T09:00:00+08:00' }]);
+  saveCars(storage, [{ car: '12', driver: 'A', nav: 'B', cls: 'C', stream: 'twitch.tv/x', note: 'Delayed', start: '2026-10-25T09:00:00+08:00', rotate: 180 }]);
+  assert.deepEqual(loadCars(storage), [{ car: '12', driver: 'A', nav: 'B', cls: 'C', stream: 'twitch.tv/x', note: 'Delayed', start: '2026-10-25T09:00:00+08:00', rotate: 180 }]);
   saveCars(storage, []);
   assert.deepEqual(loadCars(storage), []);
   assert.deepEqual(loadCars(memoryStorage({ [STORE_KEY]: 'not json' })), DEFAULT_CARS);
   assert.deepEqual(loadCars(memoryStorage({ [STORE_KEY]: '[{"car":" 7 ","driver":3},{"driver":"no number"}]' })), [
-    { car: '7', driver: '', nav: '', cls: '', stream: '', note: '', start: '' },
+    { car: '7', driver: '', nav: '', cls: '', stream: '', note: '', start: '', rotate: 0 },
   ]);
 });
 
@@ -88,4 +88,17 @@ test('A start time cleared on the device stays cleared', () => {
   saveCars(storage, cars.map((c) => ({ ...c, start: '' })));
   cars = loadCars(storage);
   assert.equal(findCar(cars, '467').start, '');
+});
+
+test("Car 467's camera is upside down; a device that already turned a car keeps its choice", () => {
+  const cars = loadCars(memoryStorage({
+    'gopro-split-cars-team': '4',
+    [STORE_KEY]: JSON.stringify([
+      { car: '467', stream: 'twitch.tv/westlimemotorsport467' },
+      { car: '479', stream: 'twitch.tv/westlimemotorsport479', rotate: 90 },
+    ]),
+  }));
+  assert.equal(findCar(cars, '467').rotate, 180);
+  assert.equal(findCar(cars, '479').rotate, 90);
+  assert.equal(findCar(DEFAULT_CARS, '479').rotate, 0);
 });

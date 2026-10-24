@@ -102,6 +102,7 @@ function buildPane(index) {
   el.querySelector('.pane-rotate').addEventListener('click', () => {
     const p = paneState(pane);
     p.rotate = ROTATIONS[(ROTATIONS.indexOf(p.rotate) + 1) % ROTATIONS.length];
+    rememberRotation(p);
     showExtras(pane);
     saveState();
   });
@@ -113,6 +114,7 @@ function buildPane(index) {
     const f = pane.form.elements;
     const car = findCar(cars, f.car.value);
     if (car?.stream) f.input.value = car.stream;
+    if (car) f.rotate.value = String(car.rotate || 0);
   });
   el.querySelector('.help-link').addEventListener('click', (e) => {
     e.preventDefault();
@@ -194,7 +196,7 @@ function paneState(pane) {
 
 // The car number, class and crew caption, and which way up the picture goes.
 function showExtras(pane) {
-  const { car, driver, nav, cls, rotate } = paneState(pane);
+  const { car, driver, nav, cls } = paneState(pane);
   pane.el.querySelector('.pane-name').textContent = paneName(pane);
   pane.el.querySelector('.offline-car').textContent = paneName(pane);
   if (pane.el.dataset.level !== 'bad') showOfflineMessage(pane);
@@ -212,8 +214,24 @@ function showExtras(pane) {
     row.hidden = !name;
   }
   card.querySelector('.crew').hidden = !(driver || nav || startText);
-  pane.el.dataset.rotate = rotate;
-  pane.el.style.setProperty('--rot', `${rotate}deg`);
+  const turn = rotationFor(pane);
+  pane.el.dataset.rotate = turn;
+  pane.el.style.setProperty('--rot', `${turn}deg`);
+}
+
+// A car's camera is mounted the same way whatever screen shows it, so turning a feed is
+// remembered for the car. Links made before cars had a rotation (or that weren't updated) use
+// the team's rotation for the car.
+function rotationFor(pane) {
+  const { rotate, car } = paneState(pane);
+  return rotate || (state.view ? findCar(DEFAULT_CARS, car)?.rotate : 0) || 0;
+}
+
+function rememberRotation(p) {
+  const car = findCar(cars, p.car);
+  if (!car || car.rotate === p.rotate) return;
+  car.rotate = p.rotate;
+  saveCars(storage, cars);
 }
 
 function render(pane) {
@@ -325,6 +343,7 @@ function submitSetup(pane) {
     rotate: Number(f.rotate.value),
     off: false,
   });
+  rememberRotation(state.panes[pane.index]);
   saveState();
   render(pane);
   toast(`${paneName(pane)}: ${KIND_NAMES[source.kind]} stream`);
@@ -1025,7 +1044,7 @@ function useCarStreams() {
   for (const p of state.panes) {
     const car = findCar(cars, p.car);
     if (!car) continue;
-    Object.assign(p, { driver: car.driver, nav: car.nav, cls: car.cls, note: car.note, start: car.start });
+    Object.assign(p, { driver: car.driver, nav: car.nav, cls: car.cls, note: car.note, start: car.start, rotate: car.rotate });
     if (!car.stream || p.input === car.stream) continue;
     let replay = false;
     try {
