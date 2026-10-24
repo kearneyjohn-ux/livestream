@@ -208,6 +208,8 @@ function stopPlayer(pane) {
 function setStatus(pane, text, level) {
   pane.el.querySelector('.pane-status').textContent = text;
   pane.el.dataset.level = level;
+  // The offline card says what's wrong when a stream can't be played at all.
+  pane.el.querySelector('.offline-card span').textContent = level === 'bad' ? text : 'Waiting for the camera to go live';
   updateTapStart();
   updateLiveButton(pane);
 }

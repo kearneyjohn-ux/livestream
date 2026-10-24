@@ -12,7 +12,7 @@ const FROZEN_MS = 12000;
 
 export function createPlayer(source, stage, onStatus) {
   if (source.kind === 'twitch') return twitchPlayer(source, stage, onStatus);
-  if (source.kind === 'youtube') return iframePlayer(source, stage, onStatus);
+  if (source.kind === 'youtube') return youtubePlayer(source, stage, onStatus);
   if (source.kind === 'hls') return hlsPlayer(source, stage, onStatus);
   return webrtcPlayer(source, stage, onStatus);
 }
@@ -27,6 +27,164 @@ function iframePlayer(source, stage, onStatus) {
   // The embedded player shows its own state and controls (including sound).
   onStatus(source.kind === 'youtube' ? 'YouTube' : 'Twitch', 'ok');
   return { hasOwnControls: true, stop: () => frame.remove() };
+}
+
+// ---------- YouTube: driven through YouTube's player API so it starts by itself ----------
+//
+// Like Twitch: the plain embed often sits on a play button on iPhones and iPads. Through the
+// API the app mutes and plays it when ready, starts a live feed again if it's left paused or
+// ends, and says plainly when YouTube won't play a stream here.
+
+let youtubeApi = null;
+
+function loadYouTubeApi() {
+  youtubeApi ||= new Promise((resolve, reject) => {
+    if (globalThis.YT?.Player) return resolve(globalThis.YT);
+    const previous = globalThis.onYouTubeIframeAPIReady;
+    globalThis.onYouTubeIframeAPIReady = () => {
+      previous?.();
+      resolve(globalThis.YT);
+    };
+    const script = document.createElement('script');
+    script.src = globalThis.YOUTUBE_API_JS || 'https://www.youtube.com/iframe_api';
+    script.onerror = () => reject(new Error('YouTube player script did not load'));
+    setTimeout(() => reject(new Error('YouTube player script timed out')), 15000);
+    document.head.append(script);
+  }).catch((err) => {
+    youtubeApi = null;
+    throw err;
+  });
+  return youtubeApi;
+}
+
+// YouTube's error codes: 100 = gone or private; 101, 150 and 153 = the owner doesn't allow it
+// to be played on other sites.
+const YT_BLOCKED = [101, 150, 153];
+
+function youtubePlayer(source, stage, onStatus) {
+  const box = document.createElement('div');
+  box.className = 'twitch-box';
+  stage.append(box);
+  let player = null;
+  let fallback = null;
+  let stopped = false;
+  let muted = true;
+  let playing = false;
+  let stuck = 0;
+  let timer = null;
+  let retry = null;
+  const setOffline = (off) => {
+    if (off) stage.dataset.offline = '';
+    else delete stage.dataset.offline;
+  };
+  const call = (fn, ...args) => {
+    try {
+      return player?.[fn]?.(...args);
+    } catch {
+      return undefined;
+    }
+  };
+
+  const build = (YT) => {
+    if (stopped) return;
+    box.replaceChildren(document.createElement('div'));
+    playing = false;
+    stuck = 0;
+    player = new YT.Player(box.firstChild, {
+      width: '100%',
+      height: '100%',
+      // A channel link plays whatever that channel has live.
+      videoId: source.videoId || 'live_stream',
+      playerVars: {
+        autoplay: 1,
+        mute: 1,
+        playsinline: 1,
+        rel: 0,
+        // YouTube's own title bar and buttons would sit under the app's bar on each feed;
+        // the app has its own sound and full-screen buttons.
+        controls: 0,
+        iv_load_policy: 3,
+        ...(source.videoId ? {} : { channel: source.channelId }),
+      },
+      events: {
+        onReady: () => {
+          if (muted) call('mute');
+          call('playVideo');
+        },
+        onStateChange: (e) => {
+          const S = YT.PlayerState || { ENDED: 0, PLAYING: 1, BUFFERING: 3 };
+          if (e.data === S.PLAYING) {
+            playing = true;
+            stuck = 0;
+            setOffline(false);
+            onStatus('Live', 'ok');
+          } else if (e.data === S.BUFFERING) {
+            onStatus('Buffering…', 'wait');
+          } else if (e.data === S.ENDED) {
+            playing = false;
+            setOffline(true);
+            onStatus('Stream ended: waiting for it to come back…', 'wait');
+            reload(30000);
+          }
+        },
+        onError: (e) => {
+          playing = false;
+          setOffline(true);
+          if (YT_BLOCKED.includes(e.data)) {
+            onStatus("YouTube doesn't allow this stream to be played in other apps. Use another link.", 'bad');
+          } else {
+            onStatus('Not live yet, or the link is wrong: trying again…', 'wait');
+            reload(30000);
+          }
+        },
+      },
+    });
+  };
+
+  // Start a fresh player later, e.g. a channel that ended its stream and may start a new one.
+  const reload = (ms) => {
+    clearTimeout(retry);
+    retry = setTimeout(() => loadYouTubeApi().then(build).catch(() => {}), ms);
+  };
+
+  onStatus('Connecting…', 'wait');
+  loadYouTubeApi()
+    .then((YT) => {
+      build(YT);
+      // A feed that isn't playing is nudged; if the browser won't let it start, ask for a tap.
+      timer = setInterval(() => {
+        const state = call('getPlayerState');
+        if (playing && state === 1) return;
+        if (state === 2 || state === -1 || state === 5) {
+          call('playVideo');
+          if (++stuck >= 2 && !playing) onStatus('Tap to start', 'tap');
+        }
+      }, 6000);
+    })
+    .catch(() => {
+      if (stopped) return;
+      box.remove();
+      fallback = iframePlayer(source, stage, onStatus);
+    });
+
+  return {
+    isMuted: () => call('isMuted') ?? muted,
+    setMuted(m) {
+      muted = m;
+      call(m ? 'mute' : 'unMute');
+      if (!m) call('playVideo');
+    },
+    resume: () => call('playVideo'),
+    stop() {
+      stopped = true;
+      clearInterval(timer);
+      clearTimeout(retry);
+      setOffline(false);
+      call('destroy');
+      fallback?.stop();
+      box.remove();
+    },
+  };
 }
 
 // ---------- Twitch: driven through Twitch's player API so it starts by itself ----------

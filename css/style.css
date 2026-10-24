@@ -422,7 +422,9 @@ body.viewing #restore { display: none !important; }
   .setup { padding-top: 16px; gap: 10px; }
   /* Buttons wrap onto a second line rather than run off the edge. */
   .pane-bar { flex-wrap: wrap; justify-content: flex-end; gap: 5px; padding: 6px 8px; }
-  .pane-bar .spacer { flex: 1 0 0; }
+  .pane-bar .spacer { display: none; }
+  /* The status takes what's left of the first line, cut short, so the car name stays left. */
+  .pane-bar .pane-status { flex: 1 1 0; }
   .pane-bar .btn-sm { padding: 4px 7px; }
   .pane-name { font-size: 14px; }
   .setup input, .setup select { padding: 8px 10px; }
