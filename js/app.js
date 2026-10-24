@@ -221,6 +221,7 @@ function showSetup(pane) {
   const form = pane.form;
   form.elements.input.value = input;
   fillCarSelect(pane, findCar(cars, car)?.car ?? (car ? KEEP_CAR : ''));
+  if (!showingReplay(pane) && findCar(cars, car)?.stream) form.elements.input.value = findCar(cars, car).stream;
   form.elements.rotate.value = String(rotate);
   form.querySelector('.setup-title').textContent = defaultName(pane.index);
   form.querySelector('.setup-error').hidden = true;
@@ -935,6 +936,23 @@ function toast(msg, ms = 3000) {
 if (PROMO.url) $('promoLink').href = PROMO.url;
 $('promoTag').textContent = PROMO.tagline;
 
+// The feeds come from the cars: a feed showing a car uses that car's stream link, which also
+// clears out any old test link saved on this device. Replays and feeds with no car are left
+// as they are, and watch links show exactly what they were sent with.
+function useCarStreams() {
+  if (state.view) return;
+  for (const p of state.panes) {
+    const car = findCar(cars, p.car);
+    if (!car?.stream || p.input === car.stream) continue;
+    let replay = false;
+    try {
+      replay = Boolean(parseSource(p.input)?.video);
+    } catch {}
+    if (!replay) p.input = car.stream;
+  }
+}
+
+useCarStreams();
 panes.push(buildPane(0), buildPane(1));
 applyMode();
 applyLayout();
