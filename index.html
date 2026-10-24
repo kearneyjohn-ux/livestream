@@ -53,6 +53,7 @@
       <div class="pane-bar">
         <span class="dot" aria-hidden="true"></span>
         <b class="pane-name"></b>
+        <select class="pane-car" aria-label="Which car this camera is on"></select>
         <span class="pane-status" role="status"></span>
         <span class="spacer"></span>
         <button class="btn btn-sm pane-live" title="Back to this car's live stream" aria-label="Back to live" hidden>● Live</button>
@@ -64,10 +65,6 @@
       </div>
       <form class="setup" hidden>
         <h2 class="setup-title"></h2>
-        <label>Stream link
-          <input name="input" type="text" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false"
-                 placeholder="https://youtube.com/live/… or https://server/truck1/index.m3u8">
-        </label>
         <div class="setup-grid">
           <label class="wide">Car
             <select name="car"></select>
@@ -76,6 +73,10 @@
             <button type="button" class="link-btn cars-link">Add, edit or remove cars</button>
             <button type="button" class="link-btn replays-link">Watch a replay</button>
           </span>
+          <label class="wide">Stream link <small class="muted">(filled in from the car's details)</small>
+            <input name="input" type="text" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false"
+                   placeholder="https://youtube.com/live/… or twitch.tv/…">
+          </label>
           <label class="wide">Picture
             <select name="rotate">
               <option value="0">The right way up</option>
@@ -119,7 +120,7 @@
   <dialog id="carsDlg">
     <form method="dialog" class="help-close"><button class="btn">Close</button></form>
     <h2>Cars</h2>
-    <p class="muted">Pick one of these for each camera under <b>Change</b>. The list is saved on this device.</p>
+    <p class="muted">Pick a car with the dropdown at the top of each feed: the feed switches to that car's stream and shows its details. Add cars here as the team grows. The list is saved on this device.</p>
     <ul class="car-list" id="carList"></ul>
     <form class="car-form" id="carForm">
       <h3 id="carFormTitle">Add a car</h3>
@@ -205,6 +206,7 @@
       <li>A feed dropped out? Tap the <b>power</b> button on it to turn that camera off: the other fills the screen and the dropped one stops using data. <b>Turn on</b> at the bottom brings it back.</li>
       <li><b>Layout → Picture in picture</b> shows one camera full screen with the other in a small window. <b>Swap</b> changes which is which; the corner button on the small window moves it.</li>
       <li><b>Replays:</b> under <b>Change</b>, <b>Watch a replay</b> lists the car's past Twitch broadcasts (after a one-off <b>Connect Twitch</b>), or plays a pasted replay link. <b>Back to live</b> on the feed returns to the live stream.</li>
+      <li><b>Switching cars:</b> tap the car name at the top of a feed and pick another car. The feed switches to that car's stream and details. <b>Add or edit cars…</b> at the bottom of that list adds new ones.</li>
       <li><b>Cars:</b> under <b>Change</b>, pick which car a camera is on. Its number, class, driver and navigator show on the feed. <b>Add, edit or remove cars</b> keeps the list.</li>
       <li>Camera mounted upside down? Tap the <b>rotate</b> button on that camera, or pick <b>Upside down</b> under <b>Change</b>. Rotation, car number and crew names go into the watch link, so set them before you send it.</li>
     </ul>
