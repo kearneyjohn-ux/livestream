@@ -214,8 +214,12 @@ code { background: var(--card); padding: 1px 5px; border-radius: 4px; font-size:
 @keyframes blink { to { opacity: .35; } }
 
 /* Fade the bars out while nothing is touched, but keep problems showing. */
-body.idle .pane:not(.editing):not([data-level="wait"]):not([data-level="bad"]) .pane-bar { opacity: 0; }
-body.idle .pane:not(.editing):not([data-level="wait"]):not([data-level="bad"]) .pane-bar > * { pointer-events: none; }
+/* Only with a mouse: on a touch screen, tapping a YouTube or Twitch feed goes to that player,
+   not this page, so there'd be no way to bring the buttons back. */
+@media (hover: hover) and (pointer: fine) {
+  body.idle .pane:not(.editing):not([data-level="wait"]):not([data-level="bad"]) .pane-bar { opacity: 0; }
+  body.idle .pane:not(.editing):not([data-level="wait"]):not([data-level="bad"]) .pane-bar > * { pointer-events: none; }
+}
 
 /* ---------- Choosing a stream ---------- */
 
