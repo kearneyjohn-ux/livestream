@@ -7,9 +7,16 @@ export const STORE_KEY = 'gopro-split-cars';
 // `note` is shown on the car's feed while its camera isn't live, e.g. a start time.
 export const DEFAULT_CARS = [
   { car: '646', driver: 'Sam Commins', nav: 'Baxter Cook', cls: 'SXS Pro', stream: '', note: '' },
-  { car: '467', driver: 'Andrew Commins', nav: 'Anthony Cook', cls: 'Extreme 2WD', stream: 'twitch.tv/westlimemotorsport467', note: '' },
-  { car: '479', driver: 'Nick Commins', nav: 'Lachlan Bennie', cls: 'Extreme 2WD', stream: 'twitch.tv/westlimemotorsport479', note: 'Starts at 6:46am WA time' },
+  { car: '467', driver: 'Andrew Commins', nav: 'Anthony Cook', cls: 'Extreme 2WD', stream: 'twitch.tv/westlimemotorsport467', note: 'Starts at 7:03am WA time · 10:03am Sydney time' },
+  { car: '479', driver: 'Nick Commins', nav: 'Lachlan Bennie', cls: 'Extreme 2WD', stream: 'twitch.tv/westlimemotorsport479', note: 'Starts at 6:46am WA time · 9:46am Sydney time' },
 ];
+
+// Bumped when the team's starting details change (e.g. new start times), so each device
+// picks the change up once, while anything edited on the device afterwards is kept.
+const TEAM_VERSION = 2;
+const VERSION_KEY = 'gopro-split-cars-team';
+// Earlier versions of the team's messages, replaced whenever they're found.
+const OLD_TEAM_NOTES = ['Starts at 6:46am WA time'];
 
 export function normalizeCar(c) {
   const text = (v, max) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
@@ -22,12 +29,19 @@ export function loadCars(storage) {
   try {
     const saved = JSON.parse(storage.getItem(STORE_KEY));
     if (Array.isArray(saved)) {
-      return saved
+      const catchUp = Number(storage.getItem(VERSION_KEY) || 0) < TEAM_VERSION;
+      const cars = saved
         .map((c) => {
           const team = findCar(DEFAULT_CARS, String(c?.car ?? ''));
-          return normalizeCar({ ...c, stream: c?.stream ?? team?.stream, note: c?.note ?? team?.note });
+          const stale = c?.note == null || OLD_TEAM_NOTES.includes(c.note) || (catchUp && !c.note);
+          return normalizeCar({ ...c, stream: c?.stream ?? team?.stream, note: stale ? team?.note : c.note });
         })
         .filter((c) => c.car);
+      if (catchUp) {
+        saveCars(storage, cars);
+        storage.setItem(VERSION_KEY, String(TEAM_VERSION));
+      }
+      return cars;
     }
   } catch {}
   return DEFAULT_CARS.map((c) => ({ ...c }));

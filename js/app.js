@@ -134,7 +134,8 @@ function defaultName(i) {
 function showOfflineMessage(pane, problem = null) {
   const span = pane.el.querySelector('.offline-card span');
   const note = paneState(pane).note;
-  span.textContent = problem || note || 'Waiting for the camera to go live';
+  // "A · B" in a message reads as two lines, e.g. a start time in two time zones.
+  span.textContent = problem || note.replace(/\s+·\s+/g, '\n') || 'Waiting for the camera to go live';
   span.classList.toggle('note', !problem && Boolean(note));
 }
 

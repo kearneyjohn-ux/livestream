@@ -61,6 +61,33 @@ test("Cars saved before stream links get the team's links, but a removed link st
   assert.equal(findCar(cars, '467').stream, 'twitch.tv/westlimemotorsport467');
   assert.equal(findCar(cars, '101').stream, '');
   assert.equal(findCar(cars, '479').stream, '', 'an emptied link is not filled back in');
-  assert.equal(findCar(cars, '479').note, 'Starts at 6:46am WA time', "the team's message is picked up");
+  assert.equal(findCar(cars, '479').note, 'Starts at 6:46am WA time · 9:46am Sydney time', "the team's message is picked up");
+  assert.equal(findCar(cars, '467').note, 'Starts at 7:03am WA time · 10:03am Sydney time');
+});
+
+test('A device showing an earlier team message gets the current one, but its own messages stay', () => {
+  const cars = loadCars(memoryStorage({
+    [STORE_KEY]: JSON.stringify([
+      { car: '479', driver: 'Nick Commins', stream: 'twitch.tv/westlimemotorsport479', note: 'Starts at 6:46am WA time' },
+      { car: '467', driver: 'Andrew Commins', stream: 'twitch.tv/westlimemotorsport467', note: 'Back after lunch' },
+    ]),
+  }));
+  assert.equal(findCar(cars, '479').note, 'Starts at 6:46am WA time · 9:46am Sydney time');
+  assert.equal(findCar(cars, '467').note, 'Back after lunch');
+});
+
+test("New team start times reach a device once, even over an empty message, but a later clear sticks", () => {
+  const storage = memoryStorage({
+    [STORE_KEY]: JSON.stringify([
+      { car: '467', driver: 'Andrew Commins', stream: 'twitch.tv/westlimemotorsport467', note: '' },
+      { car: '479', driver: 'Nick Commins', stream: 'twitch.tv/westlimemotorsport479', note: 'Starts at 6:46am WA time' },
+    ]),
+  });
+  let cars = loadCars(storage);
+  assert.equal(findCar(cars, '467').note, 'Starts at 7:03am WA time · 10:03am Sydney time');
+  assert.equal(findCar(cars, '479').note, 'Starts at 6:46am WA time · 9:46am Sydney time');
+  // Cleared on the device afterwards: stays cleared.
+  saveCars(storage, cars.map((c) => (c.car === '467' ? { ...c, note: '' } : c)));
+  cars = loadCars(storage);
   assert.equal(findCar(cars, '467').note, '');
 });

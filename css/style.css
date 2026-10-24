@@ -208,7 +208,7 @@ code { background: var(--card); padding: 1px 5px; border-radius: 4px; font-size:
 .offline-card img { width: min(60%, 340px); height: auto; }
 .offline-card b { color: var(--text); font-size: clamp(18px, 5cqw, 34px); font-weight: 800; }
 .offline-card span { font-size: clamp(12px, 2.6cqw, 16px); }
-.offline-card span.note { color: var(--lime); font-size: clamp(15px, 4cqw, 26px); font-weight: 700; }
+.offline-card span.note { color: var(--lime); font-size: clamp(15px, 4cqw, 26px); font-weight: 700; white-space: pre-line; line-height: 1.35; }
 .pane:has(.stage[data-offline]) .offline-card { display: grid; }
 .stage[data-offline] > * { opacity: 0; pointer-events: none; }
 .pane.inset .offline-card span { display: none; }
