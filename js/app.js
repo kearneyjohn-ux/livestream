@@ -103,12 +103,11 @@ function buildPane(index) {
   el.querySelector('.cars-link').addEventListener('click', () => openCars());
   el.querySelector('.replays-link').addEventListener('click', () => openReplays(pane));
   el.querySelector('.pane-live').addEventListener('click', () => backToLive(pane));
-  // Picking a car fills in its stream link, unless a different link has been typed in.
+  // The feeds come from the cars: picking a car puts in its stream link.
   pane.form.elements.car.addEventListener('change', () => {
     const f = pane.form.elements;
     const car = findCar(cars, f.car.value);
-    const current = f.input.value.trim();
-    if (car?.stream && (!current || cars.some((c) => c.stream && c.stream === current))) f.input.value = car.stream;
+    if (car?.stream) f.input.value = car.stream;
   });
   el.querySelector('.help-link').addEventListener('click', (e) => {
     e.preventDefault();
