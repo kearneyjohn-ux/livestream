@@ -141,6 +141,7 @@ function paneState(pane) {
 function showExtras(pane) {
   const { car, driver, nav, cls, rotate } = paneState(pane);
   pane.el.querySelector('.pane-name').textContent = paneName(pane);
+  pane.el.querySelector('.offline-car').textContent = paneName(pane);
   const card = pane.el.querySelector('.car-card');
   card.hidden = !(car || driver || nav || cls);
   const num = card.querySelector('.car-num');

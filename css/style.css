@@ -191,6 +191,26 @@ code { background: var(--card); padding: 1px 5px; border-radius: 4px; font-size:
 .crew-row small { flex: none; width: 6.2em; color: var(--lime); font-size: .62em; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
 .crew-row b { overflow: hidden; text-overflow: ellipsis; font-weight: 650; }
 .pane.editing .car-card { display: none; }
+/* A camera that's offline: the app's own card instead of Twitch's white offline screen. */
+.offline-card {
+  position: absolute;
+  inset: 0;
+  display: none;
+  place-content: center;
+  justify-items: center;
+  gap: 10px;
+  padding: 16px;
+  background: radial-gradient(ellipse at center, #1c2228 0%, #0b0d10 70%);
+  color: var(--muted);
+  text-align: center;
+  pointer-events: none;
+}
+.offline-card img { width: min(60%, 340px); height: auto; }
+.offline-card b { color: var(--text); font-size: clamp(18px, 5cqw, 34px); font-weight: 800; }
+.offline-card span { font-size: clamp(12px, 2.6cqw, 16px); }
+.pane:has(.stage[data-offline]) .offline-card { display: grid; }
+.stage[data-offline] > * { opacity: 0; pointer-events: none; }
+.pane.inset .offline-card span { display: none; }
 .stage > .twitch-box iframe { display: block; width: 100%; height: 100%; border: 0; }
 .pane-live { background: var(--bad); border-color: var(--bad); color: #fff; font-weight: 700; }
 .pane.inset .pane-live { display: none; }

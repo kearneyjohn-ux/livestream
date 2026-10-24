@@ -66,6 +66,12 @@ function twitchPlayer(source, stage, onStatus) {
   let online = true;
   let ready = false;
   let timer = null;
+  // While the channel is offline the app shows its own card over Twitch's offline screen.
+  // The player keeps running underneath so it notices when the camera comes back.
+  const setOffline = (off) => {
+    if (off) stage.dataset.offline = '';
+    else delete stage.dataset.offline;
+  };
   const play = () => {
     try {
       player?.play();
@@ -93,18 +99,24 @@ function twitchPlayer(source, stage, onStatus) {
       });
       on('PLAYING', 'playing', () => {
         online = true;
+        setOffline(false);
         onStatus(live ? 'Live' : 'Replay', 'ok');
       });
       on('ONLINE', 'online', () => {
         online = true;
+        setOffline(false);
         onStatus('Coming back…', 'wait');
         play();
       });
       on('OFFLINE', 'offline', () => {
         online = false;
+        setOffline(true);
         onStatus('Offline: waiting for the camera to go live…', 'wait');
       });
-      on('ENDED', 'ended', () => onStatus(live ? 'Stream ended: waiting…' : 'Replay finished', live ? 'wait' : ''));
+      on('ENDED', 'ended', () => {
+        if (live) setOffline(true);
+        onStatus(live ? 'Stream ended: waiting…' : 'Replay finished', live ? 'wait' : '');
+      });
       on('PLAYBACK_BLOCKED', 'playbackBlocked', () => onStatus('Tap to start', 'tap'));
       // A live feed left paused (a dropout, or the browser pausing it) is started again.
       if (live) {
@@ -141,6 +153,7 @@ function twitchPlayer(source, stage, onStatus) {
     stop() {
       stopped = true;
       clearInterval(timer);
+      setOffline(false);
       fallback?.stop();
       box.remove();
     },
