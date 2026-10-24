@@ -14,7 +14,7 @@ export const KIND_NAMES = {
 
 // Parse a pasted link into a source:
 //   { kind: 'youtube', videoId } or { kind: 'youtube', channelId }
-//   { kind: 'twitch', channel }
+//   { kind: 'twitch', channel } (live) or { kind: 'twitch', video } (a replay)
 //   { kind: 'hls', url }
 //   { kind: 'webrtc', url }   (a WHEP endpoint)
 // Returns null for an empty link and throws an Error with a message for the user otherwise.
@@ -53,7 +53,17 @@ export function parseSource(input) {
     );
   }
 
-  if (host === 'twitch.tv' || host === 'www.twitch.tv' || host === 'm.twitch.tv') {
+  if (host === 'player.twitch.tv') {
+    const video = (url.searchParams.get('video') || '').replace(/^v/, '');
+    if (/^\d+$/.test(video)) return { kind: 'twitch', video };
+    parts.unshift(url.searchParams.get('channel') || '');
+  }
+  if (['twitch.tv', 'www.twitch.tv', 'm.twitch.tv', 'player.twitch.tv'].includes(host)) {
+    // A replay: twitch.tv/videos/123456789
+    if (parts[0] === 'videos') {
+      if (!/^\d+$/.test(parts[1] || '')) throw new Error('That Twitch replay link has no video number.');
+      return { kind: 'twitch', video: parts[1] };
+    }
     const channel = parts[0];
     if (!channel || !/^[A-Za-z0-9_]{2,25}$/.test(channel)) throw new Error('Use a Twitch channel link like twitch.tv/yourchannel.');
     return { kind: 'twitch', channel: channel.toLowerCase() };
@@ -84,7 +94,8 @@ export function embedUrl(source, pageHost) {
       : `https://www.youtube.com/embed/live_stream?channel=${source.channelId}&${q}`;
   }
   if (source.kind === 'twitch') {
-    return `https://player.twitch.tv/?channel=${encodeURIComponent(source.channel)}&parent=${encodeURIComponent(pageHost)}&muted=true&autoplay=true`;
+    const what = source.video ? `video=v${source.video}` : `channel=${encodeURIComponent(source.channel)}`;
+    return `https://player.twitch.tv/?${what}&parent=${encodeURIComponent(pageHost)}&muted=true&autoplay=true`;
   }
   return null;
 }
@@ -105,7 +116,7 @@ export function shortInput(input) {
     return input;
   }
   if (source?.videoId) return source.videoId;
-  if (source?.kind === 'twitch') return `twitch.tv/${source.channel}`;
+  if (source?.kind === 'twitch') return source.video ? `twitch.tv/videos/${source.video}` : `twitch.tv/${source.channel}`;
   return input;
 }
 

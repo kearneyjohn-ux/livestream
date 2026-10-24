@@ -1,5 +1,7 @@
 // Players for each kind of stream. Each one fills a stage element, reports its state through
-// onStatus(text, level) where level is 'ok' | 'wait' | 'bad', and keeps retrying until stop().
+// onStatus(text, level) where level is 'ok' | 'wait' | 'bad' | 'tap' (the browser wants a tap
+// before it will play), and keeps retrying until stop(). Players whose sound the app can
+// switch have isMuted()/setMuted(); resume() asks a player to start playing again.
 // Feeds over Starlink drop out now and then (obstructions, satellite handovers), so every
 // player treats a lost or frozen stream as "reconnect in a moment", not as an error.
 
@@ -9,7 +11,8 @@ const RETRY_MS = 3000;
 const FROZEN_MS = 12000;
 
 export function createPlayer(source, stage, onStatus) {
-  if (source.kind === 'youtube' || source.kind === 'twitch') return iframePlayer(source, stage, onStatus);
+  if (source.kind === 'twitch') return twitchPlayer(source, stage, onStatus);
+  if (source.kind === 'youtube') return iframePlayer(source, stage, onStatus);
   if (source.kind === 'hls') return hlsPlayer(source, stage, onStatus);
   return webrtcPlayer(source, stage, onStatus);
 }
@@ -24,6 +27,136 @@ function iframePlayer(source, stage, onStatus) {
   // The embedded player shows its own state and controls (including sound).
   onStatus(source.kind === 'youtube' ? 'YouTube' : 'Twitch', 'ok');
   return { hasOwnControls: true, stop: () => frame.remove() };
+}
+
+// ---------- Twitch: driven through Twitch's player API so it starts by itself ----------
+//
+// Twitch's embedded player won't autoplay on phones and tablets, and after a stream drops and
+// comes back it sits on a play button. Through its API the app tells it to play (muted, which
+// browsers allow without a tap) when it's ready, whenever the channel comes back online, and
+// whenever a live feed has been left paused.
+
+let twitchApi = null;
+
+function loadTwitchApi() {
+  twitchApi ||= new Promise((resolve, reject) => {
+    if (globalThis.Twitch?.Player) return resolve(globalThis.Twitch);
+    const script = document.createElement('script');
+    script.src = globalThis.TWITCH_PLAYER_JS || 'https://player.twitch.tv/js/embed/v1.js';
+    script.onload = () => (globalThis.Twitch?.Player ? resolve(globalThis.Twitch) : reject(new Error('no player')));
+    script.onerror = () => reject(new Error('Twitch player script did not load'));
+    setTimeout(() => reject(new Error('Twitch player script timed out')), 15000);
+    document.head.append(script);
+  }).catch((err) => {
+    twitchApi = null; // try again next time
+    throw err;
+  });
+  return twitchApi;
+}
+
+function twitchPlayer(source, stage, onStatus) {
+  const live = !source.video;
+  const box = document.createElement('div');
+  box.className = 'twitch-box';
+  stage.append(box);
+  let player = null;
+  let fallback = null;
+  let stopped = false;
+  let muted = true;
+  let online = true;
+  let ready = false;
+  let timer = null;
+  const play = () => {
+    try {
+      player?.play();
+    } catch {}
+  };
+
+  onStatus('Connecting…', 'wait');
+  loadTwitchApi()
+    .then((Twitch) => {
+      if (stopped) return;
+      const P = Twitch.Player;
+      player = new P(box, {
+        width: '100%',
+        height: '100%',
+        parent: [location.hostname || 'localhost'],
+        autoplay: true,
+        muted: true,
+        ...(live ? { channel: source.channel } : { video: `v${source.video}` }),
+      });
+      const on = (name, fallbackName, fn) => player.addEventListener(P[name] || fallbackName, fn);
+      on('READY', 'ready', () => {
+        ready = true;
+        player.setMuted(muted);
+        play();
+      });
+      on('PLAYING', 'playing', () => {
+        online = true;
+        onStatus(live ? 'Live' : 'Replay', 'ok');
+      });
+      on('ONLINE', 'online', () => {
+        online = true;
+        onStatus('Coming back…', 'wait');
+        play();
+      });
+      on('OFFLINE', 'offline', () => {
+        online = false;
+        onStatus('Offline: waiting for the camera to go live…', 'wait');
+      });
+      on('ENDED', 'ended', () => onStatus(live ? 'Stream ended: waiting…' : 'Replay finished', live ? 'wait' : ''));
+      on('PLAYBACK_BLOCKED', 'playbackBlocked', () => onStatus('Tap to start', 'tap'));
+      // A live feed left paused (a dropout, or the browser pausing it) is started again.
+      if (live) {
+        timer = setInterval(() => {
+          try {
+            if (ready && online && player.isPaused() && !player.getEnded()) play();
+          } catch {}
+        }, 8000);
+      }
+    })
+    .catch(() => {
+      // Without the API, fall back to the plain embed, which shows its own play button.
+      if (stopped) return;
+      box.remove();
+      fallback = iframePlayer(source, stage, onStatus);
+    });
+
+  return {
+    isMuted: () => {
+      try {
+        return player ? player.getMuted() : muted;
+      } catch {
+        return muted;
+      }
+    },
+    setMuted(m) {
+      muted = m;
+      try {
+        player?.setMuted(m);
+        if (!m) play();
+      } catch {}
+    },
+    resume: play,
+    stop() {
+      stopped = true;
+      clearInterval(timer);
+      fallback?.stop();
+      box.remove();
+    },
+  };
+}
+
+// The sound and resume controls for players built on a <video>.
+function videoControls(video) {
+  return {
+    isMuted: () => video.muted,
+    setMuted(m) {
+      video.muted = m;
+      if (!m) video.play().catch(() => {});
+    },
+    resume: () => video.play().catch(() => {}),
+  };
 }
 
 function makeVideo(stage) {
@@ -119,6 +252,7 @@ function hlsPlayer(source, stage, onStatus) {
 
   return {
     video,
+    ...videoControls(video),
     stop() {
       stopped = true;
       clearTimeout(retry);
@@ -207,6 +341,7 @@ function webrtcPlayer(source, stage, onStatus) {
 
   return {
     video,
+    ...videoControls(video),
     stop() {
       stopped = true;
       clearTimeout(retry);

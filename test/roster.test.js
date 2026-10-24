@@ -17,13 +17,13 @@ test('A new device starts with the team cars', () => {
 
 test('The list is saved, including an empty one', () => {
   const storage = memoryStorage();
-  saveCars(storage, [{ car: '12', driver: 'A', nav: 'B', cls: 'C' }]);
-  assert.deepEqual(loadCars(storage), [{ car: '12', driver: 'A', nav: 'B', cls: 'C' }]);
+  saveCars(storage, [{ car: '12', driver: 'A', nav: 'B', cls: 'C', stream: 'twitch.tv/x' }]);
+  assert.deepEqual(loadCars(storage), [{ car: '12', driver: 'A', nav: 'B', cls: 'C', stream: 'twitch.tv/x' }]);
   saveCars(storage, []);
   assert.deepEqual(loadCars(storage), []);
   assert.deepEqual(loadCars(memoryStorage({ [STORE_KEY]: 'not json' })), DEFAULT_CARS);
   assert.deepEqual(loadCars(memoryStorage({ [STORE_KEY]: '[{"car":" 7 ","driver":3},{"driver":"no number"}]' })), [
-    { car: '7', driver: '', nav: '', cls: '' },
+    { car: '7', driver: '', nav: '', cls: '', stream: '' },
   ]);
 });
 
@@ -47,4 +47,18 @@ test('Adding, editing and removing cars', () => {
   cars = removeCar(cars, '102');
   assert.deepEqual(cars, DEFAULT_CARS);
   assert.equal(findCar(cars, ''), null);
+});
+
+test("Cars saved before stream links get the team's links, but a removed link stays removed", () => {
+  const old = memoryStorage({
+    [STORE_KEY]: JSON.stringify([
+      { car: '467', driver: 'Andrew Commins', nav: 'Anthony Cook', cls: 'Extreme 2WD' },
+      { car: '101', driver: 'Jo' },
+      { car: '479', driver: 'Nick Commins', stream: '' },
+    ]),
+  });
+  const cars = loadCars(old);
+  assert.equal(findCar(cars, '467').stream, 'twitch.tv/westlimemotorsport467');
+  assert.equal(findCar(cars, '101').stream, '');
+  assert.equal(findCar(cars, '479').stream, '', 'an emptied link is not filled back in');
 });

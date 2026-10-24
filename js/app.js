@@ -1,7 +1,8 @@
-import { parseSource, isBlockedHttp, encodeState, decodeState, watchLink, watchHash, emptyPane, normalizePane, LAYOUTS, CORNERS, ROTATIONS, KIND_NAMES } from './sources.js';
+import { parseSource, isBlockedHttp, shortInput, encodeState, decodeState, watchLink, watchHash, emptyPane, normalizePane, LAYOUTS, CORNERS, ROTATIONS, KIND_NAMES } from './sources.js';
 import { createPlayer } from './players.js';
 import { loadCars, saveCars, findCar, upsertCar, removeCar, carLabel, crewText } from './roster.js';
 import { createChannel, channelParam, parseChannelParam, sealMessage, openMessage, publish, fetchCached, subscribe } from './live.js';
+import { getClientId, setClientId, getToken, forgetToken, startSignIn, finishSignIn, fetchReplays, SignInNeeded } from './twitch.js';
 
 const $ = (id) => document.getElementById(id);
 const STORE_KEY = 'gopro-split';
@@ -15,6 +16,17 @@ const storage = (() => {
     return { getItem: () => null, setItem() {} };
   }
 })();
+
+const session = (() => {
+  try {
+    return sessionStorage;
+  } catch {
+    return { getItem: () => null, setItem() {} };
+  }
+})();
+
+// Coming back from signing in to Twitch: keep the sign-in, restore the screen setup.
+const signInMessage = finishSignIn(storage, session, location, history);
 
 const state = loadState();
 const panes = [];
@@ -86,6 +98,15 @@ function buildPane(index) {
     saveState();
   });
   el.querySelector('.cars-link').addEventListener('click', () => openCars());
+  el.querySelector('.replays-link').addEventListener('click', () => openReplays(pane));
+  el.querySelector('.pane-live').addEventListener('click', () => backToLive(pane));
+  // Picking a car fills in its stream link, unless a different link has been typed in.
+  pane.form.elements.car.addEventListener('change', () => {
+    const f = pane.form.elements;
+    const car = findCar(cars, f.car.value);
+    const current = f.input.value.trim();
+    if (car?.stream && (!current || cars.some((c) => c.stream && c.stream === current))) f.input.value = car.stream;
+  });
   el.querySelector('.help-link').addEventListener('click', (e) => {
     e.preventDefault();
     $('help').showModal();
@@ -168,7 +189,7 @@ function render(pane) {
   }
   pane.player = createPlayer(source, pane.stage, (text, level) => setStatus(pane, text, level));
   const mute = pane.el.querySelector('.pane-mute');
-  mute.hidden = !pane.player.video;
+  mute.hidden = !pane.player.setMuted;
   updateMuteButton(pane);
   updateWakeLock();
 }
@@ -183,6 +204,8 @@ function stopPlayer(pane) {
 function setStatus(pane, text, level) {
   pane.el.querySelector('.pane-status').textContent = text;
   pane.el.dataset.level = level;
+  updateTapStart();
+  updateLiveButton(pane);
 }
 
 function showSetup(pane) {
@@ -273,7 +296,7 @@ function renderCarList() {
     const crew = document.createElement('b');
     crew.textContent = crewText(c) || 'No crew names';
     const cls = document.createElement('small');
-    cls.textContent = c.cls;
+    cls.textContent = [c.cls, c.stream && shortInput(c.stream)].filter(Boolean).join(' · ');
     info.append(crew, cls);
     const edit = document.createElement('button');
     edit.type = 'button';
@@ -306,7 +329,7 @@ function renderCarList() {
 function editCar(c) {
   editingCar = c.car;
   const f = $('carForm').elements;
-  for (const key of ['car', 'cls', 'driver', 'nav']) f[key].value = c[key];
+  for (const key of ['car', 'cls', 'driver', 'nav', 'stream']) f[key].value = c[key];
   $('carFormTitle').textContent = `Edit car ${c.car}`;
   $('carSave').textContent = 'Save changes';
   $('carCancel').hidden = false;
@@ -328,7 +351,7 @@ $('carCancel').addEventListener('click', resetCarForm);
 $('carForm').addEventListener('submit', (e) => {
   e.preventDefault();
   const f = $('carForm').elements;
-  const input = { car: f.car.value, cls: f.cls.value, driver: f.driver.value, nav: f.nav.value };
+  const input = { car: f.car.value, cls: f.cls.value, driver: f.driver.value, nav: f.nav.value, stream: f.stream.value };
   const result = upsertCar(cars, input, editingCar);
   if (result.error) {
     $('carError').textContent = result.error;
@@ -361,6 +384,174 @@ function carsChanged(oldNumber, car) {
   renderCarList();
 }
 
+// ---------- Replays: browse a car's Twitch channel and play one in a feed ----------
+
+const REPLAY_PANE_KEY = 'gopro-split-replays-pane';
+let replayPane = null;
+
+// The Twitch channels to browse: the cars' stream links, plus whatever the feeds show.
+function twitchChannels() {
+  const out = [];
+  const add = (input, car) => {
+    let source = null;
+    try {
+      source = parseSource(input);
+    } catch {}
+    if (source?.kind === 'twitch' && source.channel && !out.some((o) => o.channel === source.channel)) {
+      out.push({ channel: source.channel, car });
+    }
+  };
+  for (const c of cars) add(c.stream, c.car);
+  for (const p of state.panes) add(p.input, p.car);
+  return out;
+}
+
+// A feed showing a replay knows its car's live link from the car list.
+function liveLinkFor(pane) {
+  return findCar(cars, paneState(pane).car)?.stream || '';
+}
+
+function showingReplay(pane) {
+  try {
+    return Boolean(parseSource(paneState(pane).input)?.video);
+  } catch {
+    return false;
+  }
+}
+
+function updateLiveButton(pane) {
+  pane.el.querySelector('.pane-live').hidden = !(showingReplay(pane) && liveLinkFor(pane));
+}
+
+function backToLive(pane) {
+  const link = liveLinkFor(pane);
+  if (!link) return;
+  paneState(pane).input = link;
+  render(pane);
+  saveState();
+  toast(`${paneName(pane)}: back to live`);
+}
+
+function openReplays(pane) {
+  replayPane = pane;
+  const channels = twitchChannels();
+  const select = $('replayChannel');
+  select.replaceChildren(...channels.map((c) => new Option(c.car ? `Car ${c.car} · ${c.channel}` : c.channel, c.channel)));
+  // Start on this feed's car.
+  const mine = channels.find((c) => c.car && c.car === paneState(pane).car) || channels[0];
+  if (mine) select.value = mine.channel;
+  $('replayNone').hidden = channels.length > 0;
+  $('replayClientId').value = getClientId(storage);
+  $('replayRedirect').textContent = new URL('./', location.href).href;
+  $('replaysDlg').showModal();
+  loadReplays();
+}
+
+async function loadReplays() {
+  const channel = $('replayChannel').value;
+  const list = $('replayList');
+  list.replaceChildren();
+  $('replayTwitchLink').href = channel ? `https://www.twitch.tv/${channel}/videos` : 'https://www.twitch.tv/';
+  $('replayTwitchLink').hidden = !channel;
+  const hasClient = Boolean(getClientId(storage));
+  $('replaySetup').hidden = hasClient;
+  $('replayConnect').hidden = !hasClient || Boolean(getToken(storage));
+  $('replayDisconnect').hidden = !getToken(storage);
+  if (!channel || !hasClient || !getToken(storage)) {
+    $('replayMsg').textContent = '';
+    return;
+  }
+  $('replayMsg').textContent = 'Loading replays…';
+  try {
+    const videos = await fetchReplays(storage, channel);
+    if ($('replayChannel').value !== channel) return;
+    $('replayMsg').textContent = videos.length
+      ? ''
+      : "No replays on this channel. Turn on Store past broadcasts in Twitch's stream settings to keep them.";
+    list.replaceChildren(...videos.map(replayItem));
+  } catch (err) {
+    if (err instanceof SignInNeeded) {
+      $('replayMsg').textContent = 'Connect Twitch again to see replays.';
+      $('replayConnect').hidden = false;
+      $('replayDisconnect').hidden = true;
+    } else {
+      $('replayMsg').textContent = `Couldn't load replays (${err.message}). Check the connection and try again.`;
+    }
+  }
+}
+
+function replayItem(v) {
+  const li = document.createElement('li');
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'replay';
+  const img = document.createElement('img');
+  img.alt = '';
+  img.loading = 'lazy';
+  if (v.thumb) img.src = v.thumb;
+  const text = document.createElement('span');
+  const title = document.createElement('b');
+  title.textContent = v.title;
+  const when = document.createElement('small');
+  const date = new Date(v.created);
+  when.textContent = [
+    Number.isNaN(date.getTime()) ? '' : date.toLocaleString([], { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }),
+    v.duration,
+  ].filter(Boolean).join(' · ');
+  text.append(title, when);
+  btn.append(img, text);
+  btn.addEventListener('click', () => playReplay(`twitch.tv/videos/${v.id}`));
+  li.append(btn);
+  return li;
+}
+
+function playReplay(link) {
+  const pane = replayPane;
+  if (!pane) return;
+  paneState(pane).input = link;
+  paneState(pane).off = false;
+  $('replaysDlg').close();
+  render(pane);
+  applyLayout();
+  saveState();
+  toast(`${paneName(pane)}: playing a replay`);
+}
+
+$('replayChannel').addEventListener('change', loadReplays);
+
+$('replayPaste').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const link = $('replayPaste').elements.link.value.trim();
+  let source = null;
+  try {
+    source = parseSource(link);
+  } catch {}
+  if (!source?.video) {
+    toast('Paste a Twitch replay link, like twitch.tv/videos/123456789');
+    return;
+  }
+  $('replayPaste').reset();
+  playReplay(shortInput(link));
+});
+
+$('replayClientSave').addEventListener('click', () => {
+  try {
+    setClientId(storage, $('replayClientId').value);
+  } catch {}
+  loadReplays();
+});
+
+$('replayConnect').addEventListener('click', () => {
+  session.setItem(REPLAY_PANE_KEY, String(replayPane?.index ?? 0));
+  saveState();
+  location.href = startSignIn(storage, session, location);
+});
+
+$('replayDisconnect').addEventListener('click', () => {
+  forgetToken(storage);
+  loadReplays();
+});
+
 // ---------- Turning a camera off (e.g. its feed dropped) and back on ----------
 
 function setOff(pane, off) {
@@ -387,24 +578,41 @@ function updateRestore() {
 // ---------- Sound: one camera at a time, so two engines don't drown each other out ----------
 
 function toggleSound(pane) {
-  const video = pane.player?.video;
-  if (!video) return;
-  const turnOn = video.muted;
-  for (const p of panes) {
-    if (p.player?.video) p.player.video.muted = true;
-  }
-  video.muted = !turnOn;
-  if (turnOn) video.play().catch(() => {});
+  const player = pane.player;
+  if (!player?.setMuted) return;
+  const turnOn = player.isMuted();
+  for (const p of panes) p.player?.setMuted?.(true);
+  player.setMuted(!turnOn);
   panes.forEach(updateMuteButton);
 }
 
 function updateMuteButton(pane) {
-  const video = pane.player?.video;
+  const player = pane.player;
   const btn = pane.el.querySelector('.pane-mute');
-  if (!video) return;
-  btn.textContent = video.muted ? 'Sound off' : 'Sound on';
-  btn.setAttribute('aria-pressed', String(!video.muted));
+  if (!player?.setMuted) return;
+  const muted = player.isMuted();
+  btn.textContent = muted ? 'Sound off' : 'Sound on';
+  btn.setAttribute('aria-pressed', String(!muted));
 }
+
+// ---------- Starting playback: phones may want one tap before video plays ----------
+
+// The button stays up until the players report they're playing, and for a moment after, so
+// the tap that pressed it doesn't fall through to the player underneath.
+let tapHideTimer;
+function updateTapStart() {
+  clearTimeout(tapHideTimer);
+  if (panes.some((p) => p.el.dataset.level === 'tap')) $('tapStart').hidden = false;
+  else tapHideTimer = setTimeout(() => ($('tapStart').hidden = true), 500);
+}
+
+function resumeAll() {
+  for (const p of panes) p.player?.resume?.();
+}
+
+// Any tap on the page is a chance to start players the browser held back.
+addEventListener('pointerdown', () => panes.some((p) => p.el.dataset.level === 'tap') && resumeAll(), { capture: true });
+$('tapStart').addEventListener('click', resumeAll);
 
 // ---------- Top bar ----------
 
@@ -718,3 +926,10 @@ saveState();
 wake();
 if (viewerChannel) startViewer();
 if (!state.view) setInterval(() => queueLiveSend(0), RESEND_MS);
+// Back from signing in to Twitch: say how it went and carry on browsing replays.
+if (signInMessage) {
+  toast(signInMessage);
+  const index = Number(session.getItem(REPLAY_PANE_KEY));
+  session.setItem(REPLAY_PANE_KEY, '');
+  if (!state.view && panes[index]) openReplays(panes[index]);
+}

@@ -48,6 +48,7 @@
         <b class="pane-name"></b>
         <span class="pane-status" role="status"></span>
         <span class="spacer"></span>
+        <button class="btn btn-sm pane-live" title="Back to this car's live stream" aria-label="Back to live" hidden>● Live</button>
         <button class="btn btn-sm pane-mute" hidden>Sound off</button>
         <button class="btn btn-sm pane-rotate" title="Rotate the picture a quarter turn" aria-label="Rotate picture"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 4v5h-5"/></svg></button>
         <button class="btn btn-sm pane-change">Change</button>
@@ -64,7 +65,10 @@
           <label class="wide">Car
             <select name="car"></select>
           </label>
-          <button type="button" class="link-btn wide cars-link">Add, edit or remove cars</button>
+          <span class="wide setup-links">
+            <button type="button" class="link-btn cars-link">Add, edit or remove cars</button>
+            <button type="button" class="link-btn replays-link">Watch a replay</button>
+          </span>
           <label class="wide">Picture
             <select name="rotate">
               <option value="0">The right way up</option>
@@ -125,6 +129,9 @@
         <label class="field">Navigator
           <input name="nav" type="text" maxlength="40" autocomplete="off">
         </label>
+        <label class="field wide">Live stream link
+          <input name="stream" type="text" inputmode="url" maxlength="300" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="e.g. twitch.tv/westlimemotorsport467">
+        </label>
       </div>
       <datalist id="classList"></datalist>
       <p class="setup-error" id="carError" role="alert" hidden></p>
@@ -134,6 +141,38 @@
       </div>
     </form>
   </dialog>
+
+  <dialog id="replaysDlg">
+    <form method="dialog" class="help-close"><button class="btn">Close</button></form>
+    <h2>Replays</h2>
+    <p class="muted">Pick a past broadcast to play in this feed. <b>Back to live</b> on the feed returns to the live stream.</p>
+    <p class="muted" id="replayNone" hidden>No Twitch channels yet. Give a car its Twitch link under <b>Add, edit or remove cars</b>.</p>
+    <label class="field">Channel
+      <select id="replayChannel"></select>
+    </label>
+    <div class="replay-setup" id="replaySetup" hidden>
+      <p class="muted small">To list replays here, the app needs a free Twitch app ID (one-off, about 5 minutes): on a computer or in Safari's desktop mode, go to <b>dev.twitch.tv/console/apps</b> → <b>Register Your Application</b>, name it e.g. "Westlime Split Screen", add the OAuth Redirect URL <code id="replayRedirect"></code>, pick <b>Website Integration</b>, then copy its <b>Client ID</b> here. Twitch needs two-factor sign-in turned on for your account first.</p>
+      <div class="replay-client">
+        <input id="replayClientId" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Client ID">
+        <button type="button" class="btn" id="replayClientSave">Save</button>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button type="button" class="btn btn-go" id="replayConnect" hidden>Connect Twitch</button>
+      <button type="button" class="link-btn" id="replayDisconnect" hidden>Disconnect Twitch</button>
+    </div>
+    <p class="muted small" id="replayMsg" role="status"></p>
+    <ul class="replay-list" id="replayList"></ul>
+    <form class="replay-paste" id="replayPaste">
+      <label class="field">Or paste a replay link
+        <input name="link" type="text" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="twitch.tv/videos/123456789">
+      </label>
+      <button class="btn" type="submit">Play</button>
+    </form>
+    <a class="link-btn" id="replayTwitchLink" href="https://www.twitch.tv/" target="_blank" rel="noopener">Open this channel's replays on Twitch</a>
+  </dialog>
+
+  <button class="tap-start" id="tapStart" type="button" hidden>▶ Tap to start the cameras</button>
 
   <dialog id="help">
     <form method="dialog" class="help-close"><button class="btn">Close</button></form>
@@ -158,6 +197,7 @@
       <li>Sound starts off. Tap <b>Sound on</b> on one camera; YouTube and Twitch have their own speaker button.</li>
       <li>A feed dropped out? Tap the <b>power</b> button on it to turn that camera off: the other fills the screen and the dropped one stops using data. <b>Turn on</b> at the bottom brings it back.</li>
       <li><b>Layout → Picture in picture</b> shows one camera full screen with the other in a small window. <b>Swap</b> changes which is which; the corner button on the small window moves it.</li>
+      <li><b>Replays:</b> under <b>Change</b>, <b>Watch a replay</b> lists the car's past Twitch broadcasts (after a one-off <b>Connect Twitch</b>), or plays a pasted replay link. <b>Back to live</b> on the feed returns to the live stream.</li>
       <li><b>Cars:</b> under <b>Change</b>, pick which car a camera is on. Its number, class, driver and navigator show on the feed. <b>Add, edit or remove cars</b> keeps the list.</li>
       <li>Camera mounted upside down? Tap the <b>rotate</b> button on that camera, or pick <b>Upside down</b> under <b>Change</b>. Rotation, car number and crew names go into the watch link, so set them before you send it.</li>
     </ul>

@@ -3,22 +3,28 @@
 
 export const STORE_KEY = 'gopro-split-cars';
 
+// `stream` is the car's live stream link, filled in when the car is picked for a camera.
 export const DEFAULT_CARS = [
-  { car: '646', driver: 'Sam Commins', nav: 'Baxter Cook', cls: 'SXS Pro' },
-  { car: '467', driver: 'Andrew Commins', nav: 'Anthony Cook', cls: 'Extreme 2WD' },
-  { car: '479', driver: 'Nick Commins', nav: 'Lachlan Bennie', cls: 'Extreme 2WD' },
+  { car: '646', driver: 'Sam Commins', nav: 'Baxter Cook', cls: 'SXS Pro', stream: '' },
+  { car: '467', driver: 'Andrew Commins', nav: 'Anthony Cook', cls: 'Extreme 2WD', stream: 'twitch.tv/westlimemotorsport467' },
+  { car: '479', driver: 'Nick Commins', nav: 'Lachlan Bennie', cls: 'Extreme 2WD', stream: 'twitch.tv/westlimemotorsport479' },
 ];
 
 export function normalizeCar(c) {
   const text = (v, max) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
-  return { car: text(c?.car, 6), driver: text(c?.driver, 40), nav: text(c?.nav, 40), cls: text(c?.cls, 30) };
+  return { car: text(c?.car, 6), driver: text(c?.driver, 40), nav: text(c?.nav, 40), cls: text(c?.cls, 30), stream: text(c?.stream, 300) };
 }
 
-// This device's list, or the starting list the first time.
+// This device's list, or the starting list the first time. Lists saved before cars had
+// stream links pick up the team's links for the cars they still have.
 export function loadCars(storage) {
   try {
     const saved = JSON.parse(storage.getItem(STORE_KEY));
-    if (Array.isArray(saved)) return saved.map(normalizeCar).filter((c) => c.car);
+    if (Array.isArray(saved)) {
+      return saved
+        .map((c) => normalizeCar({ ...c, stream: c?.stream ?? findCar(DEFAULT_CARS, String(c?.car ?? ''))?.stream }))
+        .filter((c) => c.car);
+    }
   } catch {}
   return DEFAULT_CARS.map((c) => ({ ...c }));
 }

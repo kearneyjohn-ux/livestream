@@ -190,6 +190,28 @@ code { background: var(--card); padding: 1px 5px; border-radius: 4px; font-size:
 .crew-row small { flex: none; width: 6.2em; color: var(--lime); font-size: .62em; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
 .crew-row b { overflow: hidden; text-overflow: ellipsis; font-weight: 650; }
 .pane.editing .car-card { display: none; }
+.stage > .twitch-box iframe { display: block; width: 100%; height: 100%; border: 0; }
+.pane-live { background: var(--bad); border-color: var(--bad); color: #fff; font-weight: 700; }
+.pane.inset .pane-live { display: none; }
+
+/* Shown when the browser wants a tap before it will play video. */
+.tap-start {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  z-index: 20;
+  transform: translate(-50%, -50%);
+  padding: 18px 28px;
+  border: 3px solid #fff;
+  border-radius: 999px;
+  background: var(--go);
+  color: #fff;
+  font: inherit;
+  font-size: 20px;
+  font-weight: 700;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .6);
+  cursor: pointer;
+}
 
 .pane-bar {
   position: absolute;
@@ -246,7 +268,25 @@ code { background: var(--card); padding: 1px 5px; border-radius: 4px; font-size:
 .setup-grid { display: grid; gap: 12px; grid-template-columns: 1fr 1fr; }
 .setup-grid .wide { grid-column: 1 / -1; }
 .setup-grid .field { margin: 0; }
+.setup-links { display: flex; flex-wrap: wrap; gap: 6px 18px; }
+.setup-links .link-btn { margin-top: -6px; }
 .link-btn { justify-self: start; margin-top: -6px; padding: 0; border: 0; background: none; color: var(--accent); font-size: 14px; text-decoration: underline; cursor: pointer; }
+
+/* ---------- Replays ---------- */
+
+.replay-list { list-style: none; margin: 0 0 14px; padding: 0; display: grid; gap: 8px; }
+.replay { display: flex; align-items: center; gap: 12px; width: 100%; padding: 6px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); text-align: left; cursor: pointer; }
+.replay:hover { border-color: var(--accent); }
+.replay img { flex: none; width: 112px; aspect-ratio: 16 / 9; border-radius: 6px; background: #000; object-fit: cover; }
+.replay span { display: grid; gap: 2px; min-width: 0; }
+.replay b { font-weight: 600; overflow-wrap: anywhere; }
+.replay small { color: var(--muted); }
+.replay-client { display: flex; gap: 8px; margin: 0 0 12px; }
+.replay-client input, #replaysDlg select { flex: 1; min-width: 0; width: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font-size: 16px; }
+.replay-paste { display: flex; align-items: end; gap: 8px; padding-top: 12px; border-top: 1px solid var(--line); }
+.replay-paste .field { flex: 1; margin: 0; }
+#replayMsg { margin: 0 0 10px; }
+#replayTwitchLink { display: inline-block; margin-top: 12px; font-size: 13px; }
 
 /* ---------- Cars ---------- */
 
@@ -308,7 +348,7 @@ dialog li { margin-bottom: 6px; }
 /* Watch link: just the cameras, locked as they were set up. Viewers keep full screen and
    their own sound, which don't change anything for anyone else. */
 body.viewing #layoutBtn, body.viewing #swapBtn, body.viewing #shareBtn, body.viewing #helpBtn,
-body.viewing .pane-change, body.viewing .pane-rotate, body.viewing .pane-off, body.viewing .pane-corner,
+body.viewing .pane-change, body.viewing .pane-rotate, body.viewing .pane-live, body.viewing .pane-off, body.viewing .pane-corner,
 body.viewing #restore { display: none !important; }
 
 .toast {
@@ -338,6 +378,11 @@ body.viewing #restore { display: none !important; }
   .tools { flex: none; gap: 4px; }
   .tools .btn { padding: 6px 8px; }
   .setup { padding-top: 16px; gap: 10px; }
+  /* Buttons wrap onto a second line rather than run off the edge. */
+  .pane-bar { flex-wrap: wrap; justify-content: flex-end; gap: 5px; padding: 6px 8px; }
+  .pane-bar .spacer { flex: 1 0 0; }
+  .pane-bar .btn-sm { padding: 4px 7px; }
+  .pane-name { font-size: 14px; }
   .setup input, .setup select { padding: 8px 10px; }
   /* Setting up: the buttons need the room. A watch link has fewer, so its title shows. */
   body:not(.viewing) .brand .title { display: none; }

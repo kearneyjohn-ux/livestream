@@ -148,3 +148,18 @@ test('Watch links are always watch-only and survive accented names', () => {
   // Older readable watch links still open, still watch-only.
   assert.equal(decodeState('#a=dQw4w9WgXcQ&view=1').view, true);
 });
+
+test('Twitch replays play by video number', () => {
+  for (const link of ['https://www.twitch.tv/videos/2281234567', 'twitch.tv/videos/2281234567?t=1h2m', 'https://player.twitch.tv/?video=v2281234567&parent=x']) {
+    assert.deepEqual(parseSource(link), { kind: 'twitch', video: '2281234567' }, link);
+  }
+  assert.throws(() => parseSource('https://www.twitch.tv/videos/'), /no video number/);
+  assert.equal(
+    embedUrl({ kind: 'twitch', video: '2281234567' }, 'me.github.io'),
+    'https://player.twitch.tv/?video=v2281234567&parent=me.github.io&muted=true&autoplay=true',
+  );
+  assert.equal(shortInput('https://www.twitch.tv/videos/2281234567'), 'twitch.tv/videos/2281234567');
+  assert.deepEqual(parseSource('https://player.twitch.tv/?channel=WestlimeMotorsport467&parent=x'), { kind: 'twitch', channel: 'westlimemotorsport467' });
+  // Live channels are unchanged.
+  assert.deepEqual(parseSource('twitch.tv/westlimemotorsport467'), { kind: 'twitch', channel: 'westlimemotorsport467' });
+});
