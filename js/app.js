@@ -129,6 +129,15 @@ function defaultName(i) {
   return `Camera ${i + 1}`;
 }
 
+// Shown on a feed while its camera isn't live: the car's own message (e.g. a start time,
+// shown prominently), or `problem` when the stream can't be played at all.
+function showOfflineMessage(pane, problem = null) {
+  const span = pane.el.querySelector('.offline-card span');
+  const note = paneState(pane).note;
+  span.textContent = problem || note || 'Waiting for the camera to go live';
+  span.classList.toggle('note', !problem && Boolean(note));
+}
+
 // One camera per car, so a camera is known by its car once one is picked.
 function paneName(pane) {
   const { car } = paneState(pane);
@@ -144,6 +153,7 @@ function showExtras(pane) {
   const { car, driver, nav, cls, rotate } = paneState(pane);
   pane.el.querySelector('.pane-name').textContent = paneName(pane);
   pane.el.querySelector('.offline-car').textContent = paneName(pane);
+  if (pane.el.dataset.level !== 'bad') showOfflineMessage(pane);
   const card = pane.el.querySelector('.car-card');
   card.hidden = !(car || driver || nav || cls);
   const num = card.querySelector('.car-num');
@@ -211,7 +221,7 @@ function setStatus(pane, text, level) {
   pane.el.querySelector('.pane-status').textContent = text;
   pane.el.dataset.level = level;
   // The offline card says what's wrong when a stream can't be played at all.
-  pane.el.querySelector('.offline-card span').textContent = level === 'bad' ? text : 'Waiting for the camera to go live';
+  showOfflineMessage(pane, level === 'bad' ? text : null);
   updateTapStart();
   updateLiveButton(pane);
 }
@@ -262,6 +272,7 @@ function submitSetup(pane) {
     driver: chosen?.driver || '',
     nav: chosen?.nav || '',
     cls: chosen?.cls || '',
+    note: chosen?.note || '',
     rotate: Number(f.rotate.value),
     off: false,
   });
@@ -338,7 +349,7 @@ function renderCarList() {
 function editCar(c) {
   editingCar = c.car;
   const f = $('carForm').elements;
-  for (const key of ['car', 'cls', 'driver', 'nav', 'stream']) f[key].value = c[key];
+  for (const key of ['car', 'cls', 'driver', 'nav', 'stream', 'note']) f[key].value = c[key];
   $('carFormTitle').textContent = `Edit car ${c.car}`;
   $('carSave').textContent = 'Save changes';
   $('carCancel').hidden = false;
@@ -360,7 +371,7 @@ $('carCancel').addEventListener('click', resetCarForm);
 $('carForm').addEventListener('submit', (e) => {
   e.preventDefault();
   const f = $('carForm').elements;
-  const input = { car: f.car.value, cls: f.cls.value, driver: f.driver.value, nav: f.nav.value, stream: f.stream.value };
+  const input = { car: f.car.value, cls: f.cls.value, driver: f.driver.value, nav: f.nav.value, stream: f.stream.value, note: f.note.value };
   const result = upsertCar(cars, input, editingCar);
   if (result.error) {
     $('carError').textContent = result.error;
@@ -384,7 +395,7 @@ function carsChanged(oldNumber, car, oldStream = '') {
     const wasPicked = oldNumber && select.value.toLowerCase() === oldNumber.toLowerCase();
     const p = paneState(pane);
     if (oldNumber && p.car.toLowerCase() === oldNumber.toLowerCase()) {
-      Object.assign(p, { car: car?.car || '', driver: car?.driver || '', nav: car?.nav || '', cls: car?.cls || '' });
+      Object.assign(p, { car: car?.car || '', driver: car?.driver || '', nav: car?.nav || '', cls: car?.cls || '', note: car?.note || '' });
       // A feed showing the car's old stream link follows it to the new one.
       if (car?.stream && oldStream && p.input === oldStream && car.stream !== oldStream) {
         p.input = car.stream;
@@ -936,14 +947,16 @@ function toast(msg, ms = 3000) {
 if (PROMO.url) $('promoLink').href = PROMO.url;
 $('promoTag').textContent = PROMO.tagline;
 
-// The feeds come from the cars: a feed showing a car uses that car's stream link, which also
-// clears out any old test link saved on this device. Replays and feeds with no car are left
+// The feeds come from the cars: a feed showing a car uses that car's details from the list,
+// including its stream link, which also clears out any old test link saved on this device. Replays and feeds with no car are left
 // as they are, and watch links show exactly what they were sent with.
 function useCarStreams() {
   if (state.view) return;
   for (const p of state.panes) {
     const car = findCar(cars, p.car);
-    if (!car?.stream || p.input === car.stream) continue;
+    if (!car) continue;
+    Object.assign(p, { driver: car.driver, nav: car.nav, cls: car.cls, note: car.note });
+    if (!car.stream || p.input === car.stream) continue;
     let replay = false;
     try {
       replay = Boolean(parseSource(p.input)?.video);

@@ -4,25 +4,29 @@
 export const STORE_KEY = 'gopro-split-cars';
 
 // `stream` is the car's live stream link, filled in when the car is picked for a camera.
+// `note` is shown on the car's feed while its camera isn't live, e.g. a start time.
 export const DEFAULT_CARS = [
-  { car: '646', driver: 'Sam Commins', nav: 'Baxter Cook', cls: 'SXS Pro', stream: '' },
-  { car: '467', driver: 'Andrew Commins', nav: 'Anthony Cook', cls: 'Extreme 2WD', stream: 'twitch.tv/westlimemotorsport467' },
-  { car: '479', driver: 'Nick Commins', nav: 'Lachlan Bennie', cls: 'Extreme 2WD', stream: 'twitch.tv/westlimemotorsport479' },
+  { car: '646', driver: 'Sam Commins', nav: 'Baxter Cook', cls: 'SXS Pro', stream: '', note: '' },
+  { car: '467', driver: 'Andrew Commins', nav: 'Anthony Cook', cls: 'Extreme 2WD', stream: 'twitch.tv/westlimemotorsport467', note: '' },
+  { car: '479', driver: 'Nick Commins', nav: 'Lachlan Bennie', cls: 'Extreme 2WD', stream: 'twitch.tv/westlimemotorsport479', note: 'Starts at 6:46am WA time' },
 ];
 
 export function normalizeCar(c) {
   const text = (v, max) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
-  return { car: text(c?.car, 6), driver: text(c?.driver, 40), nav: text(c?.nav, 40), cls: text(c?.cls, 30), stream: text(c?.stream, 300) };
+  return { car: text(c?.car, 6), driver: text(c?.driver, 40), nav: text(c?.nav, 40), cls: text(c?.cls, 30), stream: text(c?.stream, 300), note: text(c?.note, 80) };
 }
 
-// This device's list, or the starting list the first time. Lists saved before cars had
-// stream links pick up the team's links for the cars they still have.
+// This device's list, or the starting list the first time. Lists saved before cars had stream
+// links or offline messages pick up the team's ones for the cars they still have.
 export function loadCars(storage) {
   try {
     const saved = JSON.parse(storage.getItem(STORE_KEY));
     if (Array.isArray(saved)) {
       return saved
-        .map((c) => normalizeCar({ ...c, stream: c?.stream ?? findCar(DEFAULT_CARS, String(c?.car ?? ''))?.stream }))
+        .map((c) => {
+          const team = findCar(DEFAULT_CARS, String(c?.car ?? ''));
+          return normalizeCar({ ...c, stream: c?.stream ?? team?.stream, note: c?.note ?? team?.note });
+        })
         .filter((c) => c.car);
     }
   } catch {}

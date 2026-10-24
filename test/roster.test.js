@@ -17,13 +17,13 @@ test('A new device starts with the team cars', () => {
 
 test('The list is saved, including an empty one', () => {
   const storage = memoryStorage();
-  saveCars(storage, [{ car: '12', driver: 'A', nav: 'B', cls: 'C', stream: 'twitch.tv/x' }]);
-  assert.deepEqual(loadCars(storage), [{ car: '12', driver: 'A', nav: 'B', cls: 'C', stream: 'twitch.tv/x' }]);
+  saveCars(storage, [{ car: '12', driver: 'A', nav: 'B', cls: 'C', stream: 'twitch.tv/x', note: 'Starts 9am' }]);
+  assert.deepEqual(loadCars(storage), [{ car: '12', driver: 'A', nav: 'B', cls: 'C', stream: 'twitch.tv/x', note: 'Starts 9am' }]);
   saveCars(storage, []);
   assert.deepEqual(loadCars(storage), []);
   assert.deepEqual(loadCars(memoryStorage({ [STORE_KEY]: 'not json' })), DEFAULT_CARS);
   assert.deepEqual(loadCars(memoryStorage({ [STORE_KEY]: '[{"car":" 7 ","driver":3},{"driver":"no number"}]' })), [
-    { car: '7', driver: '', nav: '', cls: '', stream: '' },
+    { car: '7', driver: '', nav: '', cls: '', stream: '', note: '' },
   ]);
 });
 
@@ -61,4 +61,6 @@ test("Cars saved before stream links get the team's links, but a removed link st
   assert.equal(findCar(cars, '467').stream, 'twitch.tv/westlimemotorsport467');
   assert.equal(findCar(cars, '101').stream, '');
   assert.equal(findCar(cars, '479').stream, '', 'an emptied link is not filled back in');
+  assert.equal(findCar(cars, '479').note, 'Starts at 6:46am WA time', "the team's message is picked up");
+  assert.equal(findCar(cars, '467').note, '');
 });
