@@ -133,7 +133,10 @@ function defaultName(i) {
 // shown prominently), or `problem` when the stream can't be played at all.
 function showOfflineMessage(pane, problem = null) {
   const span = pane.el.querySelector('.offline-card span');
-  const note = paneState(pane).note;
+  // Links made before a car had a message (e.g. one saved in a short link) fall back to the
+  // team's current message for that car.
+  const { note: own, car } = paneState(pane);
+  const note = own || findCar(DEFAULT_CARS, car)?.note || '';
   // "A · B" in a message reads as two lines, e.g. a start time in two time zones.
   span.textContent = problem || note.replace(/\s+·\s+/g, '\n') || 'Waiting for the camera to go live';
   span.classList.toggle('note', !problem && Boolean(note));
