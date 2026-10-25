@@ -281,24 +281,7 @@ body.solo-open { overscroll-behavior: none; }
 .pane-live { background: var(--bad); border-color: var(--bad); color: #fff; font-weight: 700; }
 .pane.inset .pane-live { display: none; }
 
-/* Shown when the browser wants a tap before it will play video. */
-.tap-start {
-  position: fixed;
-  left: 50%;
-  top: 50%;
-  z-index: 20;
-  transform: translate(-50%, -50%);
-  padding: 18px 28px;
-  border: 3px solid #fff;
-  border-radius: 999px;
-  background: var(--go);
-  color: #fff;
-  font: inherit;
-  font-size: 20px;
-  font-weight: 700;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, .6);
-  cursor: pointer;
-}
+.pane-play { background: var(--go); border-color: var(--go); color: #fff; font-weight: 700; }
 
 .pane-bar {
   position: absolute;

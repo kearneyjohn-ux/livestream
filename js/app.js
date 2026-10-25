@@ -108,6 +108,7 @@ function buildPane(index) {
     saveState();
   });
   el.querySelector('.cars-link').addEventListener('click', () => openCars());
+  el.querySelector('.pane-play').addEventListener('click', () => resumeAll());
   // One feed full screen, still the right way up (a player's own full screen isn't). iPhones
   // don't let pages go full screen, so there the feed fills the whole window instead.
   const full = el.querySelector('.pane-full');
@@ -742,13 +743,9 @@ function updateMuteButton(pane) {
 
 // ---------- Starting playback: phones may want one tap before video plays ----------
 
-// The button stays up until the players report they're playing, and for a moment after, so
-// the tap that pressed it doesn't fall through to the player underneath.
-let tapHideTimer;
+// A feed the browser won't start without a tap gets a small Play button on its own bar.
 function updateTapStart() {
-  clearTimeout(tapHideTimer);
-  if (panes.some((p) => p.el.dataset.level === 'tap')) $('tapStart').hidden = false;
-  else tapHideTimer = setTimeout(() => ($('tapStart').hidden = true), 500);
+  for (const p of panes) p.el.querySelector('.pane-play').hidden = p.el.dataset.level !== 'tap';
 }
 
 function resumeAll() {
@@ -757,7 +754,6 @@ function resumeAll() {
 
 // Any tap on the page is a chance to start players the browser held back.
 addEventListener('pointerdown', () => panes.some((p) => p.el.dataset.level === 'tap') && resumeAll(), { capture: true });
-$('tapStart').addEventListener('click', resumeAll);
 
 // ---------- Top bar ----------
 

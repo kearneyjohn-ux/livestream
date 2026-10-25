@@ -279,7 +279,8 @@ function twitchPlayer(source, stage, onStatus, options = {}) {
         if (live) setOffline(true);
         onStatus(live ? 'Stream ended: waiting…' : 'Replay finished', live ? 'wait' : '');
       });
-      on('PLAYBACK_BLOCKED', 'playbackBlocked', () => onStatus('Tap to start', 'tap'));
+      // An offline channel reports "blocked" too; that's not something a tap can fix.
+      on('PLAYBACK_BLOCKED', 'playbackBlocked', () => online && onStatus('Tap to start', 'tap'));
       // A live feed left paused (a dropout, or the browser pausing it) is started again.
       if (live) {
         timer = setInterval(() => {
