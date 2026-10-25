@@ -62,7 +62,7 @@ test("Cars saved before stream links get the team's links, but a removed link st
   assert.equal(findCar(cars, '101').stream, '');
   assert.equal(findCar(cars, '479').stream, '', 'an emptied link is not filled back in');
   assert.equal(findCar(cars, '479').start, '2026-10-25T13:47:00+08:00', "the team's start time is picked up");
-  assert.equal(findCar(cars, '467').start, '2026-10-25T07:03:00+08:00');
+  assert.equal(findCar(cars, '467').start, '2026-10-25T14:38:00+08:00');
 });
 
 test('Start times written as messages give way to real start times; other messages stay', () => {
@@ -75,7 +75,7 @@ test('Start times written as messages give way to real start times; other messag
     ]),
   }));
   assert.equal(findCar(cars, '467').note, '');
-  assert.equal(findCar(cars, '467').start, '2026-10-25T07:03:00+08:00');
+  assert.equal(findCar(cars, '467').start, '2026-10-25T14:38:00+08:00');
   assert.equal(findCar(cars, '479').note, '');
   assert.equal(findCar(cars, '479').start, '2026-10-25T13:47:00+08:00');
   assert.equal(findCar(cars, '646').note, 'Back after lunch');
@@ -84,7 +84,7 @@ test('Start times written as messages give way to real start times; other messag
 test('A start time cleared on the device stays cleared', () => {
   const storage = memoryStorage({ [STORE_KEY]: JSON.stringify([{ car: '467', stream: 'x' }]) });
   let cars = loadCars(storage);
-  assert.equal(findCar(cars, '467').start, '2026-10-25T07:03:00+08:00');
+  assert.equal(findCar(cars, '467').start, '2026-10-25T14:38:00+08:00');
   saveCars(storage, cars.map((c) => ({ ...c, start: '' })));
   cars = loadCars(storage);
   assert.equal(findCar(cars, '467').start, '');
@@ -113,4 +113,13 @@ test("Car 479's earlier start time is replaced by the new one; a device's own ti
   }));
   assert.equal(findCar(cars, '479').start, '2026-10-25T13:47:00+08:00');
   assert.equal(findCar(cars, '467').start, '2026-10-25T08:15:00+08:00');
+});
+
+test("Car 467's earlier start time is replaced by the new one", () => {
+  const cars = loadCars(memoryStorage({
+    'gopro-split-cars-team': '6',
+    [STORE_KEY]: JSON.stringify([{ car: '467', stream: 'twitch.tv/westlimemotorsport467', start: '2026-10-25T07:03:00+08:00', rotate: 180 }]),
+  }));
+  assert.equal(findCar(cars, '467').start, '2026-10-25T14:38:00+08:00');
+  assert.equal(findCar(cars, '467').rotate, 180);
 });
