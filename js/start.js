@@ -63,3 +63,15 @@ export function fromWaInput(value) {
   if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value || '')) return '';
   return `${value}:00+08:00`;
 }
+
+// Time left until a start, e.g. "1:23:45", "23:45", "0:09"; '' once it has passed.
+export function countdown(iso, now = new Date()) {
+  const date = parseStart(iso);
+  if (!date || date <= now) return '';
+  const total = Math.ceil((date - now) / 1000);
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  const pad = (n) => String(n).padStart(2, '0');
+  return h ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
+}

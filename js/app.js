@@ -1,6 +1,6 @@
 import { parseSource, isBlockedHttp, shortInput, encodeState, decodeState, watchLink, watchHash, emptyPane, normalizePane, LAYOUTS, CORNERS, ROTATIONS, KIND_NAMES } from './sources.js?v=dev';
 import { createPlayer } from './players.js?v=dev';
-import { isUpcoming, startLines, toWaInput, fromWaInput } from './start.js?v=dev';
+import { isUpcoming, startLines, toWaInput, fromWaInput, countdown } from './start.js?v=dev';
 import { fetchViewerCount, viewerLabel } from './viewers.js?v=dev';
 import { DEFAULT_CARS, OLD_TEAM_STARTS, loadCars, saveCars, findCar, upsertCar, removeCar, carLabel, crewText } from './roster.js?v=dev';
 import { createChannel, channelParam, parseChannelParam, sealMessage, openMessage, publish, fetchCached, subscribe } from './live.js?v=dev';
@@ -198,6 +198,26 @@ async function updateViewers() {
 }
 setInterval(updateViewers, 60000);
 document.addEventListener('visibilitychange', updateViewers);
+
+// The countdown to each feed's start, ticking every second; at the start it goes, along with
+// the start time in the caption and on the offline card.
+function tickCountdowns() {
+  for (const pane of panes) {
+    const left = countdown(startFor(pane));
+    const box = pane.el.querySelector('.countdown');
+    const card = pane.el.querySelector('.offline-countdown');
+    const wasShowing = !box.hidden;
+    box.hidden = !left;
+    card.hidden = !left;
+    box.querySelector('b').textContent = left;
+    card.textContent = left ? `in ${left}` : '';
+    if (wasShowing && !left) {
+      showExtras(pane);
+      if (pane.el.dataset.level !== 'bad') showOfflineMessage(pane);
+    }
+  }
+}
+setInterval(tickCountdowns, 1000);
 
 // Start times disappear from the feeds once they pass.
 setInterval(() => {
@@ -1095,6 +1115,7 @@ saveState();
 wake();
 checkForUpdate();
 updateViewers();
+tickCountdowns();
 setInterval(checkForUpdate, 5 * 60 * 1000);
 document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && checkForUpdate());
 if (viewerChannel) startViewer();

@@ -208,6 +208,29 @@ body.solo-open { overscroll-behavior: none; }
 .crew-row b { overflow: hidden; text-overflow: ellipsis; font-weight: 650; }
 .start-row b { color: var(--lime); }
 .pane.editing .car-card { display: none; }
+/* Countdown to the start, top-right corner of the feed under its buttons. */
+.countdown {
+  position: absolute;
+  right: 10px;
+  top: 46px;
+  z-index: 1;
+  display: grid;
+  justify-items: end;
+  padding: 5px 10px;
+  border-radius: 8px;
+  background: rgba(11, 13, 16, .82);
+  border: 1px solid var(--lime);
+  line-height: 1.1;
+  pointer-events: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .4);
+}
+.countdown small { color: var(--lime); font-size: clamp(9px, 1.6cqw, 12px); font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.countdown b { font-size: clamp(16px, 3.6cqw, 30px); font-weight: 800; font-variant-numeric: tabular-nums; }
+.pane.inset .countdown, .pane:has(.stage[data-offline]) .countdown, .pane.editing .countdown { display: none; }
+/* Picture in picture with the small window top right: the main feed's countdown goes left. */
+.split[data-layout="pip"][data-showing="2"][data-corner="tr"] .pane:not(.inset) .countdown { right: auto; left: 10px; top: 80px; justify-items: start; }
+.offline-card .offline-countdown { color: var(--text); font-style: normal; font-size: clamp(22px, 6cqw, 44px); font-weight: 800; font-variant-numeric: tabular-nums; }
+
 /* How many are watching, in the top-left corner of the feed under its name (clear of the
    car caption at the bottom, which can be wide on a phone). */
 .viewer-badge {

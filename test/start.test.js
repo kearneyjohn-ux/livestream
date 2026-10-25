@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { isUpcoming, startLines, toWaInput, fromWaInput, parseStart } from '../js/start.js';
+import { isUpcoming, startLines, toWaInput, fromWaInput, parseStart, countdown } from '../js/start.js';
 
 const start = '2026-10-25T06:46:00+08:00';
 
@@ -28,4 +28,15 @@ test('Start times are entered in WA time', () => {
   assert.equal(parseStart(fromWaInput('2026-10-25T07:03')).toISOString(), '2026-10-24T23:03:00.000Z');
   assert.equal(fromWaInput(''), '');
   assert.equal(toWaInput(''), '');
+});
+
+test('The countdown reads hours, minutes and seconds, and stops at the start', () => {
+  const at = (t) => new Date(`2026-10-25T${t}+08:00`);
+  const start = '2026-10-25T13:47:00+08:00';
+  assert.equal(countdown(start, at('08:30:00')), '5:17:00');
+  assert.equal(countdown(start, at('13:00:01')), '46:59');
+  assert.equal(countdown(start, at('13:46:51')), '0:09');
+  assert.equal(countdown(start, at('13:46:59.5')), '0:01');
+  assert.equal(countdown(start, at('13:47:00')), '');
+  assert.equal(countdown('', at('13:00:00')), '');
 });
