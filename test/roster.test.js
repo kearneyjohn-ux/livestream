@@ -61,7 +61,7 @@ test("Cars saved before stream links get the team's links, but a removed link st
   assert.equal(findCar(cars, '467').stream, 'twitch.tv/westlimemotorsport467');
   assert.equal(findCar(cars, '101').stream, '');
   assert.equal(findCar(cars, '479').stream, '', 'an emptied link is not filled back in');
-  assert.equal(findCar(cars, '479').start, '2026-10-25T06:46:00+08:00', "the team's start time is picked up");
+  assert.equal(findCar(cars, '479').start, '2026-10-25T13:47:00+08:00', "the team's start time is picked up");
   assert.equal(findCar(cars, '467').start, '2026-10-25T07:03:00+08:00');
 });
 
@@ -77,7 +77,7 @@ test('Start times written as messages give way to real start times; other messag
   assert.equal(findCar(cars, '467').note, '');
   assert.equal(findCar(cars, '467').start, '2026-10-25T07:03:00+08:00');
   assert.equal(findCar(cars, '479').note, '');
-  assert.equal(findCar(cars, '479').start, '2026-10-25T06:46:00+08:00');
+  assert.equal(findCar(cars, '479').start, '2026-10-25T13:47:00+08:00');
   assert.equal(findCar(cars, '646').note, 'Back after lunch');
 });
 
@@ -101,4 +101,16 @@ test("Car 467's camera is upside down; a device that already turned a car keeps 
   assert.equal(findCar(cars, '467').rotate, 180);
   assert.equal(findCar(cars, '479').rotate, 90);
   assert.equal(findCar(DEFAULT_CARS, '479').rotate, 0);
+});
+
+test("Car 479's earlier start time is replaced by the new one; a device's own time stays", () => {
+  const cars = loadCars(memoryStorage({
+    'gopro-split-cars-team': '5',
+    [STORE_KEY]: JSON.stringify([
+      { car: '479', stream: 'twitch.tv/westlimemotorsport479', start: '2026-10-25T06:46:00+08:00' },
+      { car: '467', stream: 'twitch.tv/westlimemotorsport467', start: '2026-10-25T08:15:00+08:00' },
+    ]),
+  }));
+  assert.equal(findCar(cars, '479').start, '2026-10-25T13:47:00+08:00');
+  assert.equal(findCar(cars, '467').start, '2026-10-25T08:15:00+08:00');
 });

@@ -10,13 +10,16 @@ export const STORE_KEY = 'gopro-split-cars';
 export const DEFAULT_CARS = [
   { car: '646', driver: 'Sam Commins', nav: 'Baxter Cook', cls: 'SXS Pro', stream: '', note: '', start: '', rotate: 0 },
   { car: '467', driver: 'Andrew Commins', nav: 'Anthony Cook', cls: 'Extreme 2WD', stream: 'twitch.tv/westlimemotorsport467', note: '', start: '2026-10-25T07:03:00+08:00', rotate: 180 },
-  { car: '479', driver: 'Nick Commins', nav: 'Lachlan Bennie', cls: 'Extreme 2WD', stream: 'twitch.tv/westlimemotorsport479', note: '', start: '2026-10-25T06:46:00+08:00', rotate: 0 },
+  { car: '479', driver: 'Nick Commins', nav: 'Lachlan Bennie', cls: 'Extreme 2WD', stream: 'twitch.tv/westlimemotorsport479', note: '', start: '2026-10-25T13:47:00+08:00', rotate: 0 },
 ];
 
 // Bumped when the team's starting details change (e.g. new start times), so each device
 // picks the change up once, while anything edited on the device afterwards is kept.
-const TEAM_VERSION = 5;
+const TEAM_VERSION = 6;
 const VERSION_KEY = 'gopro-split-cars-team';
+// Earlier team start times, replaced by the current one wherever they're found (on a device
+// or in a link) unless the device has set a different time of its own.
+export const OLD_TEAM_STARTS = ['2026-10-25T06:46:00+08:00'];
 // Earlier versions of the team's messages, replaced whenever they're found.
 const OLD_TEAM_NOTES = [
   'Starts at 6:46am WA time',
@@ -42,7 +45,7 @@ export function loadCars(storage) {
         .map((c) => {
           const team = findCar(DEFAULT_CARS, String(c?.car ?? ''));
           const stale = c?.note == null || OLD_TEAM_NOTES.includes(c.note) || (catchUp && !c.note);
-          const start = c?.start == null || (catchUp && !c.start) ? team?.start : c.start;
+          const start = c?.start == null || OLD_TEAM_STARTS.includes(c.start) || (catchUp && !c.start) ? team?.start : c.start;
           const rotate = c?.rotate == null || (catchUp && !c.rotate) ? team?.rotate : c.rotate;
           return normalizeCar({ ...c, stream: c?.stream ?? team?.stream, note: stale ? team?.note : c.note, start, rotate });
         })

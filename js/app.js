@@ -2,7 +2,7 @@ import { parseSource, isBlockedHttp, shortInput, encodeState, decodeState, watch
 import { createPlayer } from './players.js?v=dev';
 import { isUpcoming, startLines, toWaInput, fromWaInput } from './start.js?v=dev';
 import { fetchViewerCount, viewerLabel } from './viewers.js?v=dev';
-import { DEFAULT_CARS, loadCars, saveCars, findCar, upsertCar, removeCar, carLabel, crewText } from './roster.js?v=dev';
+import { DEFAULT_CARS, OLD_TEAM_STARTS, loadCars, saveCars, findCar, upsertCar, removeCar, carLabel, crewText } from './roster.js?v=dev';
 import { createChannel, channelParam, parseChannelParam, sealMessage, openMessage, publish, fetchCached, subscribe } from './live.js?v=dev';
 import { getClientId, setClientId, getToken, forgetToken, startSignIn, finishSignIn, fetchReplays, SignInNeeded } from './twitch.js?v=dev';
 
@@ -173,7 +173,8 @@ function showOfflineMessage(pane, problem = null) {
 // The feed's start time; links made before cars had one use the team's.
 function startFor(pane) {
   const { start, car } = paneState(pane);
-  return start || findCar(DEFAULT_CARS, car)?.start || '';
+  const team = findCar(DEFAULT_CARS, car)?.start || '';
+  return start && !OLD_TEAM_STARTS.includes(start) ? start : team;
 }
 
 // ---------- Viewer counts: how many are watching each car's Twitch stream ----------
